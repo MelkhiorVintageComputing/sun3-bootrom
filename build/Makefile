@@ -29,9 +29,9 @@ AFLAGS = -march=68020 -mcpu=68020 -x assembler-with-cpp -Wa,--register-prefix-op
 LFLAGS = -T bootrom.lds # --no-warn-rwx-segments
 
 # For cross compile to m68k target
-CC = m68k-linux-gnu-gcc -m68020 -fno-builtin $(CFLAGS)
+CC = m68k-linux-gnu-gcc-8 -m68020 -fno-builtin $(CFLAGS)
 AAS = m68k-linux-gnu-as -m68020
-AS = m68k-linux-gnu-gcc -DASM $(AFLAGS)
+AS = m68k-linux-gnu-gcc-8 -DASM $(AFLAGS)
 LD = m68k-linux-gnu-ld
 SIZE = m68k-linux-gnu-size
 

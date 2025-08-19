@@ -263,7 +263,7 @@ EN_CEINT        =       0x40            | enable level 7 interrupt on error
 |
 | For Model 25 SCC access for test status and error reporting must go thru
 | the MMU; while all other Sun-3 models use the MMU bypass.
-[ FERRARI (Sun3/60) is the same as M25 for this
+| FERRARI (Sun3/60) is the same as M25 for this
 	
 #if defined(M25) || defined(FERRARI)
 UARTACNTL       =       SCC_BASE + 4    | SCC port A control address(M25)

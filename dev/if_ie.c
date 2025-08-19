@@ -194,8 +194,8 @@ iereset ( struct ie_softc *es, struct saioreq *sip )
         struct ieiaddr *iad = &es->es_iaddr;
         struct ieconf *ic = &es->es_ic;
         int i, j;
-        register struct mie_device *mie = es->es_mie;
-        register struct obie_device *obie = es->es_obie;
+        register volatile struct mie_device *mie = es->es_mie;
+        register volatile struct obie_device *obie = es->es_obie;
         for (j = 0; j < 10; j++) {
                 /* Set up the control blocks for initializing the chip */
                 bzero((caddr_t)&es->es_scp, sizeof (struct iescp));
