@@ -1415,7 +1415,7 @@ Test_0F:
         asrl    d0,d3
         movl    d3,MEM_size             | save memory size in page RAM
 230:
-#endif SIRIUS
+#endif !SIRIUS
 #ifdef SIRIUS           
 |*****************************************************************************
 |       sirius ecc test
@@ -1924,6 +1924,7 @@ Test_10:
 |       Write modulo three pattern in memory
 
 60:
+| The FERRARI code saves a0 here
         lea     64f,a6
         jra     loop$                   | <<<TOP OF TEST LOOP>>>
 64:
@@ -1942,18 +1943,32 @@ Test_10:
         cmpl    d5,a5                   | at end of memory?
         bne     70b
 
+| The FERRARI binary differs in 70
+| instead of the branches going to 78 (below), it branches to extra code *before* 78	
+| The extra code seems to only be a printf, so we probably don't care
+
 |       Read back and compare with pattern generator.
 
 78:
         lea     low_mem_addr,a5         | starting memory address to test
+	
+| The FERRARI binary starts differing here.
+| Instead of a0, a memory addresse in the SYNDROME part (save_a0)
+| is put into D1 (saved earlier in Test_10::60)
+| The the code diverges significantly, before catching up at 88
+	
 80:
         movl    a0,d1                   | init pattern generator
         moveq   #2,d3                   | modulo 3 count
 82:
 | save a0 please!
+| ... this save_a0 has disappeared in the binary for FERRARI
+| I presume it was replaced by the saving done in Test_10::60 above
         movl    a0,save_a0
         movl    a5@+,d0                 | ***read long word address***
         cmpl    d1,d0                   | write = read pattern?
+| FERRARI branches to some extra code for 86
+| And the subsequent code is just the printf, no more %d2/%a5 shenanigans	
         beq     86f
         movl    d1,d2                   | copy to d2 for xor
         eorl    d0,d2
@@ -1966,6 +1981,13 @@ Test_10:
         clrl    d2
         movb    MERR_BASE,d2            | ***rd parity err status***
         movb    #0,MERR_ADDR            | ***clr parity err status***
+| FERRARI moves forward the lea for mem_par_err_txt to here
+| and then
+|* no more a5 backup
+|* branch to 85 changes to a bne, but then it's a very different 85
+|* the lea for nmi_ques_int_txt moves forward to the end of 83
+|* no branch to error$
+| Then the code is quite different until 88...	
         btst    #7,d2                   | parity interrupt bit set?
         beq     85f                     | if not?!?
         tstl    a5@-                    | back up access address for error$
