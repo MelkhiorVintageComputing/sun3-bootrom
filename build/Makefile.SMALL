@@ -72,7 +72,7 @@ SCSI_OBJS = sc.o sd.o st.o si.o
 #OBJS = $(BASE_OBJS) $(FB_OBJS) $(KB_OBJS) $(SCSI_OBJS)
 #OBJS = $(BASE_OBJS) $(FB_OBJS) $(KB_OBJS)
 #OBJS = $(BASE_OBJS) $(FB_OBJS)
-OBJS = $(BASE_OBJS)
+OBJS = $(BASE_OBJS) if_le.o
 
 # These are devices we never intend to deal with
 ALT_OBJS = xy.o tm.o xt.o xd.o
@@ -193,6 +193,9 @@ gallmash.o: ../sys/gallmash.c
 	$(CC) -c $<
 
 if_ie.o: ../dev/if_ie.c
+	$(CC) -c $<
+
+if_le.o: ../dev/if_le.c
 	$(CC) -c $<
 
 mem_grab.o: ../sys/mem_grab.c

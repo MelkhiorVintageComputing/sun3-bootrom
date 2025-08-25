@@ -131,6 +131,7 @@ struct  le_md {                 /* Message Descriptor */
         u_short lmd_bcnt;       /* Buffer Byte Count (maximum length) */
         u_short lmd_mcnt;       /* Message Byte Count (actual length) */
 };
+
 #define lmd_flags3 lmd_mcnt     /* for Transmit message descriptor */
 
 /* Bits common to both rmds and tmds */
@@ -156,3 +157,5 @@ struct  le_md {                 /* Message Descriptor */
 #define TMD_LCAR 0x0800         /* Loss of Carrier */
 #define TMD_RTRY 0x0400         /* More than 16 Retry's */
 #define TMD_TDR  0x003f         /* Time Domain Reflectometry counter mask */
+
+/* THE END */

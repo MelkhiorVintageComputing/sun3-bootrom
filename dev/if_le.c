@@ -1,13 +1,9 @@
-#ifdef  M25
-#ifndef lint
-static  char sccsid[] = "@(#)if_le.c 1.1 86/09/27 Copyr 1986 Sun Micro";
-#endif
-
-// tjt - not yet made ANSI, not needed for 3-160
-
 /*
  * Copyright (c) 1986 by Sun Microsystems, Inc.
  */
+
+// tjt - this entire file was originally conditional on M25
+//  I decided not to do things this way.
 
 /*****************************************************************************
  * 10-Dec-85
@@ -43,22 +39,17 @@ static  char sccsid[] = "@(#)if_le.c 1.1 86/09/27 Copyr 1986 Sun Micro";
 #include "../dev/if_ether.h"
 #include "../h/idprom.h"
 #include "../sun3/cpu.map.h"
+#include "../h/pixrect.h"
+
+#include "../h/protos.h"
 
 // in sys/inet.c
 void myetheraddr ( struct ether_addr * );
 
-static int lanceinit ( struct saioreq * );
-
 /* Determine whether we are PROM or not. */
 /* #define PROM 1 */
-
-int     lancexmit(), lancepoll(), lancereset();
-
-struct saif leif = {
-        lancexmit,
-        lancepoll,
-        lancereset,
-};
+// tjt
+#define PROM 1
 
 #define LANCERBUFSIZ    1600
 #define LANCETBUFSIZ    1600
@@ -78,15 +69,36 @@ struct lance_softc {
         int                     es_next_rmd;    /* Next descriptor in ring */
 };
 
+// int lancexmit(), lancepoll(), lancereset();
+// int lanceprobe(), tftpboot(), lanceopen(), lanceclose(), etherstrategy();
+// int nullsys ( null );
+
+static int lanceinit ( struct saioreq * );
+
+static int lanceprobe ( struct saioreq * );
+static int lanceopen ( struct saioreq * );
+static void lanceclose ( struct saioreq * );
+static void install_buf_in_rmd ( u_char *, struct le_md *);
+
+static int lancexmit ( struct lance_softc *, char *, int );
+static int lancepoll ( struct lance_softc *, char * );
+static int lancereset ( struct lance_softc *, struct saioreq * );
+
+struct saif leif = {
+        (void *) lancexmit,
+        (void *) lancepoll,
+        (void *) lancereset
+};
+
 /*
  * Need to initialize the Ethernet control reg to:
  *      Reset is active
  *      Loopback is NOT active
  *      Interrupt enable is not active.
  */
-u_long lancestd[] = {VIOPG_AMD_ETHER << BYTES_PG_SHIFT};
+static u_long lancestd[] = {VIOPG_AMD_ETHER << BYTES_PG_SHIFT};
 
-struct devinfo lanceinfo = {
+static struct devinfo lanceinfo = {
         sizeof (struct le_device),
         sizeof (struct lance_softc),
         0,                              /* Local bytes (we use dma) */
@@ -96,12 +108,14 @@ struct devinfo lanceinfo = {
         0,                              /* transfer size handled by ND */
 };
 
-int lanceprobe(), tftpboot(), lanceopen(), lanceclose(), etherstrategy();
-int nullsys();
-
 struct boottab ledriver = {
-        "le", lanceprobe, tftpboot, lanceopen, lanceclose,
-        etherstrategy, "le: Sun/Lance Ethernet", &lanceinfo,
+        "le",
+		(void *) lanceprobe,
+		tftpboot,
+		(void *) lanceopen,
+		(void *) lanceclose,
+        (void *) etherstrategy,
+		"le: Sun/Lance Ethernet", &lanceinfo,
 };
 
 extern struct ether_addr etherbroadcastaddr;
@@ -110,8 +124,8 @@ extern struct ether_addr etherbroadcastaddr;
  * Probe for device.
  * Must return -1 for failure for monitor probe
  */
-lanceprobe(sip)
-        struct saioreq *sip;
+static int
+lanceprobe ( struct saioreq *sip )
 {
         register short *sp;
         struct idprom id;
@@ -126,8 +140,8 @@ lanceprobe(sip)
 /*
  * Open Lance Ethernet nd connection, return -1 for errors.
  */
-lanceopen(sip)
-        struct saioreq *sip;
+static int
+lanceopen ( struct saioreq *sip )
 {
         register int result;
 
@@ -181,10 +195,8 @@ lanceinit ( struct saioreq *sip )
  * Basic Lance initialization
  * Returns 1 for error (after printing message), 0 for ok.
  */
-int
-lancereset(es, sip)
-        register struct lance_softc *es;
-        struct saioreq *sip;
+static int
+lancereset ( struct lance_softc *es, struct saioreq *sip )
 {
         register struct le_device *le = es->es_lance;
         register struct le_init_block *ib = &es->es_ib;
@@ -265,12 +277,11 @@ lancereset(es, sip)
         return 0;               /* It all worked! */
 }
 
-install_buf_in_rmd(buffer, rmd)
-        u_char *buffer;
-        register struct le_md *rmd;
+static void
+install_buf_in_rmd ( u_char *buffer, struct le_md *rmd )
 {
-        rmd->lmd_ladr = (u_short)buffer;
-        rmd->lmd_hadr = (long)buffer >> 16;
+        rmd->lmd_ladr = ((u_32) buffer) & 0xffff;
+        rmd->lmd_hadr = (u_32) buffer >> 16;
         rmd->lmd_bcnt = -LANCERBUFSIZ;
         rmd->lmd_mcnt = 0;
         rmd->lmd_flags = LMD_OWN;
@@ -280,15 +291,14 @@ install_buf_in_rmd(buffer, rmd)
  * Transmit a packet.
  * If possible, just points to the packet without copying it anywhere.
  */
-lancexmit(es, buf, count)
-        register struct lance_softc *es;
-        char *buf;
-        int count;
+static int
+lancexmit ( struct lance_softc *es, char *buf, int count )
 {
         register struct le_device *le = es->es_lance;
         struct le_md *tmd = &es->es_tmd; /* Transmit Msg. Descriptor */
         caddr_t tbuf;
         int timeout = TIMEBOMB;
+		u_32 addr;	// tjt
 
 #ifdef DEBUG2
         printf( "xmit np_blkno %x\n",
@@ -306,9 +316,13 @@ lancexmit(es, buf, count)
          * so this generality is not free.
          */
 #ifdef PROM
-        tbuf = buf;
-        if (((int)tbuf & 0x00F00000) == 0)
-                (int)tbuf |= 0x00F00000;
+        // tbuf = buf;
+        // if ( ((int)tbuf & 0x00F00000) == 0 )
+        //         (int)tbuf |= 0x00F00000;
+		addr = (u_32) buf;
+		if ( addr & 0x00f00000 == 0 )
+			addr |= 0x00f00000;
+		tbuf = (caddr_t) addr;
 #else  PROM
 /* FIXME, constant address masks here! */
         if ( ((int)buf & 0x0F000000) == 0x0F000000) { /* we can point to it */
@@ -320,7 +334,8 @@ lancexmit(es, buf, count)
 #endif PROM
         
         tmd->lmd_hadr = (int)tbuf >> 16;
-        tmd->lmd_ladr = (u_short) tbuf;
+        // tmd->lmd_ladr = (u_short) tbuf;
+        tmd->lmd_ladr = ((u_32) tbuf) & 0xffff;
         tmd->lmd_bcnt = -count;
         
 #ifdef notdef
@@ -367,10 +382,8 @@ lancexmit(es, buf, count)
         return (0);
 }
 
-int
-lancepoll(es, buf)
-        register struct lance_softc *es;
-        char *buf;
+static int
+lancepoll ( struct lance_softc *es, char *buf )
 {
         register struct le_device *le = es->es_lance;
         register struct le_md *rmd;
@@ -456,8 +469,8 @@ restorebuf:
  * and most programs don't know how to deal with that -- they just assume
  * that main memory is theirs to play with.
  */
-lanceclose(sip)
-        struct saioreq *sip;
+static void
+lanceclose ( struct saioreq *sip )
 {
         struct lance_softc *es = (struct lance_softc *) sip->si_devdata;
         struct le_device *le = es->es_lance;
@@ -466,4 +479,5 @@ lanceclose(sip)
         le->le_rap = LE_CSR0;
         le->le_csr = LE_STOP;
 }
-#endif  M25
+
+/* THE END */
