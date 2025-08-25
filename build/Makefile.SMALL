@@ -65,13 +65,22 @@ KB_OBJS = getkey.o ktab.s2.o
 # see boot.c for the only lines that include them.
 SCSI_OBJS = sc.o sd.o st.o si.o
 
+# Note:
+# Changing which of these you use also requires that
+#  you edit the definitions in h/config.h accordingly
+
+#OBJS = $(BASE_OBJS) $(FB_OBJS) $(KB_OBJS) $(SCSI_OBJS)
+#OBJS = $(BASE_OBJS) $(FB_OBJS) $(KB_OBJS)
 #OBJS = $(BASE_OBJS) $(FB_OBJS)
 OBJS = $(BASE_OBJS)
 
 # These are devices we never intend to deal with
 ALT_OBJS = xy.o tm.o xt.o xd.o
 
-# This defines the link order
+# This defines the link order.
+# the only reason to preserve the order is if you want to
+# compare the disassembled binary against the disassembly
+# of the original bootrom.
 ORIG_OBJS = romvec.o trap.o mapmem.o reset.o cpu.map.o diag.o banner.o commands.o \
     idprom.o usecmd.o getline.o printf.o busyio.o keypress.o\
     getkey.o ktab.s2.o boot.o monalloc.o common.o blts.o \

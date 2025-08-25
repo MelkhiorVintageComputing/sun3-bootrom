@@ -213,7 +213,7 @@ bootreset:
 softreset:
         movw    #EVEC_KCMD,d7           | Fake FVO
 bootsoft:
-        jsr     resetinstr             | Zap out Mainbus devices
+        jsr     resetinstr              | Zap out Mainbus devices
         clrb    INTERRUPT_BASE          | Shut off all interrupts.
 |
 | Reset the world's maps.
