@@ -17,7 +17,7 @@ IDENT='-DID="Rev 2.1"' -DSUN3 -DCARRERA
 # Now this is in bootrom.lds
 #RELOC=0FEF0000
 
-# -Os requries memcpy
+# -Os requries memcpy (now supplied), smallest (~51 KiB)
 # -O3 produces a binary > 64 KiB
 # -O2 works but is quite close to 64 KiB
 # -O1 works and has some margin (~54 KiB)
@@ -57,13 +57,19 @@ BASE_OBJS = romvec.o trap.o mapmem.o reset.o cpu.map.o \
 # scutils.o is not scsi, but a color framebuffer
 
 # These files provide framebuffer and keyboard support
-FB_OBJS = finit.o fwritestr.o scutils.o gallmash.o expand.o rop.o
+FB_OBJS = finit.o fwritestr.o scutils.o gallmash.o expand.o mem_batchrop.o
 
 KB_OBJS = getkey.o ktab.s2.o
 
 # These are the scsi drivers
 # see boot.c for the only lines that include them.
 SCSI_OBJS = sc.o sd.o st.o si.o
+
+# memcpy
+MEMCPY_OBJS = memcpy.o
+
+# binary prom_mem_batchrop, superceded
+# ROP_OBJS = rop.o
 
 # Note:
 # Changing which of these you use also requires that
@@ -250,6 +256,10 @@ si.o: ../dev/si.c
 
 rop.o: ../sys/rop.s
 	$(AS) -c $<
+
+memcpy.o: ../sys/memcpy.S
+	$(AS) -c $<
+
 
 
 # -----------------------------------------------------

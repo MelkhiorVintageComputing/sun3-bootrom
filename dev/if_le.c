@@ -148,6 +148,7 @@ lanceopen ( struct saioreq *sip )
 #ifdef DEBUG1
         printf("le: lanceopen[\n");
 #endif DEBUG1
+
         sip->si_sif = &leif;
         if ( lanceinit(sip) || (result = etheropen(sip)) < 0 ) {
                 lanceclose(sip);                /* Make sure we kill chip */
@@ -156,6 +157,7 @@ lanceopen ( struct saioreq *sip )
 #endif DEBUG1
                 return (-1);
         }
+
 #ifdef DEBUG1
         printf("le: lanceopen --> %x\n", result);
 #endif DEBUG1

@@ -1,4 +1,3 @@
-
 /*      @(#)if_lereg.h 1.1 86/09/27 SMI */
 
 /*
@@ -25,18 +24,32 @@
  * sequence, when the other CSRs need to be accessed, the appropriate
  * CSR address is written into the address port, and afterwards
  * the 0 is put back in the address port.
+ *
+ * The chip on my 3/80 board is an am7990, not an am79c90.
+ * The two are pin compatible, but the "c" version has some
+ * enhancements that may need driver support.
  */
 
 #define MAXBUF  2000    /* JCM kludge */
 #define MINPACKET 64
 
+#ifdef ORIGINAL
 struct le_device {
         u_short le_rdp;                 /* Register Data Port */
         u_short         : 14;           /* Reserved */
         u_short le_rap  : 2;            /* Register Address Port */
 };
+#endif
+
+// tjt - the 7990 really does have 16 bit registers.
+struct le_device {
+        vu_16	 le_rdp;            /* Register Data Port */
+        vu_16 	 le_rap;            /* Register Address Port */
+};
+
 #define le_csr le_rdp
 
+// Internal registers, selected by the value in the RAP register
 #define LE_CSR0         0
 #define LE_CSR1         1
 #define LE_CSR2         2

@@ -12,6 +12,7 @@
 
 #define	bool_t	int
 #define	enum_t	int
+
 #define	FALSE	(0)
 #define	TRUE	(1)
 
@@ -24,6 +25,6 @@
 #include "systypes.h"
 #endif
 #else
-#define mem_alloc(bsize)	kmem_alloc((u_int)bsize)
+#define mem_alloc(bsize)		kmem_alloc((u_int)bsize)
 #define mem_free(ptr, bsize)	kmem_free((caddr_t)(ptr), (u_int)(bsize))
 #endif
