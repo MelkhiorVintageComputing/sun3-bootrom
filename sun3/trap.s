@@ -178,17 +178,35 @@ _reset_common:
         movc    a7,dfc
         subw    a7,a7                   | Boot state, shut off rest.
         movsb   a7,ENABLEOFF
-
+#ifdef FPGA
+        movb    #~0x19,d7
+        movsb   d7,LEDOFF
+#endif
         movl    #TRAPVECTOR_BASE,a7     | Set up our vector base (not at 0,
         movc    a7,vbr                  | which is where CPU resets put it).
-
+#ifdef FPGA
+        movb    #~0x1A,d7
+        movsb   d7,LEDOFF
+#endif
         movl    #exit_to_mon,INITSP-4   | return address if user rts'es to us
         lea     INITSP-6,sp             | Reset stack ptr below stored stuff
+#ifdef FPGA
+        movb    #~0x1b,d7
+        movsb   d7,LEDOFF
+#endif
         pea     USERCODE                | fake PC = User code start addr
         movw    sr,sp@-                 | Save current SR (oughta be 2700)
         subw    #mis_sr,sp              | SP was pointing at SR, back it
+#ifdef FPGA
+        movb    #~0x1c,d7
+        movsb   d7,LEDOFF
+#endif
                                         | up so sp@(mis_sr) points there.
         moveml  #0xFFFF,sp@(mis_d0)     | Store all registers, including SSP
+#ifdef FPGA
+        movb    #~0x1f,d7
+        movsb   d7,LEDOFF
+#endif
         movl    sp,d7                   | Set "reset or trap" indicator.
         jra     _resettrap              | Pretend we took a trap.
 |
@@ -282,6 +300,11 @@ _resettrap:
 
         moveq   #FC_MAP,d0
         movc    d0,sfc
+#ifdef FPGA
+	movc    d0,dfc                  | LEDOFF access
+        movb    #~0x1B,d0
+        movsb   d0,LEDOFF
+#endif
         movsb   CONTEXTOFF,d0
         andb    #CONTEXTMASK,d0         | Throw away undefined bits
         movl    d0,sp@(mis_context)     | Save user context reg

@@ -182,6 +182,13 @@ ETHER_PAGE       =       0xf4000060      | physical page, ethernet chip
 EPROM_PAGE       =       0xf4000080      | physical page, EPROM
 ECC_MEM_PAGE     =       0xf40000f0      | physical page, ECC MEM control
 
+#ifdef FPGA_WISHBONE
+|-----------------------------------------------------------------------
+|       defines for Type 3 space devices
+|
+DDR3_CSR_PAGE     =       0xFC078500      | physical page, DDR3 CSR control
+SCRATCH_SRAM_PAGE =   	  0xEC078700      | physical page, scratch sram
+#endif FPGA_WISHBONE
 
 |--------------------------------------------------------------------------
 | Virtual Pages assigned to Type 1 I/O
@@ -193,14 +200,24 @@ MERR_BASE       =       0xFFF4000       | virtual page, parity err reg
 MERR_ADDR       =       0xFFF4004       | virtual page, memory err reg
 EEPROM_BASE     =       0xFFF6000       | virtual page, for EEPROM
 EEPROM_MEM_SZ   =       0xFFF6015       | memory to test
+#ifdef SIRIUS
 ECC_MEM_BASE    =       0xFFF8000       | virtual page, ECC control regs
 ECC_MEM_ENA_REG =       ECC_MEM_BASE    | virtual address, ECC Mem enable
 ECC_SYNDROME_REG =      ECC_MEM_BASE + 4 | virutal address, ECC syndrome reg
 ECC_DIAG_REG    =       ECC_MEM_BASE + 8 | virtual address, ECC diag reg
+#endif SIRIUS
 #ifdef SIRIUS
 MEMINIT_PAGE    =       0xFFFA000       | page used to intialize upper memory
 #endif SIRIUS
 CLK_BASE        =       0xFFFC000       | the clock base address virtual
+
+#ifdef FPGA_WISHBONE
+|--------------------------------------------------------------------------
+| Virtual Pages assigned to Type 3 I/O
+|
+DDR3_CSR_BASE     =     0xFFF8000       | virtual page, for DDR3 CSR
+SCRATCH_SRAM_BASE =     0xFFFA000       | virtual page, for scratch sram
+#endif FPGA_WISHBONE
 
 |-------------------------------------------------------------------------
 | Bus Error Register defines
@@ -264,8 +281,10 @@ EN_CEINT        =       0x40            | enable level 7 interrupt on error
 | For Model 25 SCC access for test status and error reporting must go thru
 | the MMU; while all other Sun-3 models use the MMU bypass.
 | FERRARI (Sun3/60) is the same as M25 for this
-	
-#if defined(M25) || defined(FERRARI)
+| This affects also many, mayn instructions, as accessing
+| the UARTs use normal movb on M25/FERRARI, while it is
+| using movsb on previous models
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
 UARTACNTL       =       SCC_BASE + 4    | SCC port A control address(M25)
 UARTBCNTL       =       SCC_BASE        | SCC port B control address(M25)
 #else
@@ -319,7 +338,11 @@ bit_exc_err     =       6               | exception class fail flag
 | Miscellaneous defines
 |
 |MEM_size       =       0x1FFFA000      | save memory size
+#if !defined(FPGA_FAST)	
 led_delay       =       0xc350          | delay count for LED viewing
+#else
+led_delay       =       0x0002          | delay count for LED viewing
+#endif FPGA_FAST
 DIAGSW          =       0x0             | diagnostic switch bit
 Test_patt       =       0x5A972C5A      | initial test pattern
 patt_end        =       0x972C5A5A      | ending pattern
@@ -334,7 +357,11 @@ sr_index        =       0x0             | stack index, sr
 pc_index        =       0x2             | stack index, pc
 vector_index    =       0x6             | stack index, vector (vector only)
 access_index    =       0x10            | stack index, access addr(bus err only)
+#if defined(FPGA)
+delay_10_sec    =       0x000FFF        | less than 10 second delay!
+#else
 delay_10_sec    =       0x0FFFFF        | 10 second delay
+#endif
 SYNMSK          =       0xff000000      | mask for syndrome code
 EADDR           =       0x7ffffe        | mask for ecc address
 MEG32           =       0x20
@@ -404,7 +431,7 @@ LED_loop:
         cmpb    #0xFF,d0                | loop til 0-bit is shifted out
         bmi     LED_loop
 
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
 	
 |------------------------------------------------------------------------------
 |       SCC (Z8530) Wr/Rd Test Thru MMU (M25 only)
@@ -421,7 +448,6 @@ LED_loop:
 |
 |       Test type:      FATAL if error, loops forever.
 |       LED display:    0x80 upon error; 0x00 if no error.
-
 Test_00:
         bset    #bit_no_print,d7        | disable printouts for this test
         bset    #bit_no_read,d7         | disable reading chars
@@ -445,6 +471,7 @@ Test_00:
         movsb   d0,a0@                  | ***0xFF >> Seg address 0x7FF***       
         movl    #SCC_PAGE,d0
         movsl   d0,a1@                  | ***0xF4000010 >> Page address 0xFFF
+#if !defined(FPGA_FAST)
         movb    #0x0c,UARTACNTL         | ***select SCC WR 12***
         movw    #0x100,d4               | chip recovery time delay
 30:     dbra    d4,30b
@@ -470,8 +497,8 @@ Test_00:
 
         bclr    #bit_no_print,d7        | reenable print to SCC port A  
         bclr    #bit_no_read,d7         | renable char reads from port A
-
-#endif M25 FERRARI
+#endif FPGA_FAST
+#endif M25 FERRARI FPGA
 
 | Setup SCC chip for 1200 Baud, no parity, 8 data bits, 1 stop bit
 
@@ -494,7 +521,7 @@ Start:
 |
 |       Test type:      FATAL if error, loops forever
 |       LED display:    0x81 upon error; 0x01 if no error
-
+#if !defined(FPGA_FAST)
 Test_01:
         movb    #~1,d7                  | test #
         lea     Test_01_txt,a4          | test descriptor text
@@ -529,8 +556,12 @@ Test_01:
         lea     60f,a6
         jra     loop$end                | <<<BOTTOM OF TEST LOOP>>>
 60:
+#else
+        moveq   #FC_MMU,d3
+        movc    d3,sfc                  | restore sfc to MMU=default
+#endif FPGA_FAST
 
-#if !defined(M25) && !defined(FERRARI)
+#if !defined(M25) && !defined(FERRARI) && !defined(FPGA)
 |-----------------------------------------------------------------------------
 | User DVMA Enable Register Test
 |
@@ -568,7 +599,8 @@ Test_02:
 40:
         dbra    d1,14b                  | last pattern?
 
-#endif  M25 FERRARI    
+#endif  M25 FERRARI FPGA
+#if !defined(FPGA_FAST)
 |----------------------------------------------------------------------------
 | Context Register Test
 |
@@ -608,6 +640,7 @@ Test_03:
         jra     loop$end                | <<<BOTTOM OF TEST LOOP>>>
 40:
         dbra    d1,14b                  | decrement pattern, last?
+#endif FPGA_FAST
 |----------------------------------------------------------------------------
 | Segment Map Write/Read Test
 |
@@ -618,6 +651,7 @@ Test_03:
 |       Test type:      FATAL if error, loops forever
 |       LED display:    0x84 upon error; 0x04 if no error
 
+#if !defined(FPGA_FAST)
 Test_04:
         movb    #~4,d7                  | test #
         lea     Test_04_txt,a4          | test descriptor text
@@ -660,7 +694,7 @@ Test_04:
         dbra    d4,20b                  | next context #
         clrl    d3
         movsb   d3,CXREG                | 0 > CXREG for print$ routine
-
+#endif FPGA_FAST
 |----------------------------------------------------------------------------
 | Segment Map Test
 |
@@ -673,6 +707,7 @@ Test_04:
 |       Test type:      FATAL if error, loops forever
 |       LED display:    0x84 upon error; 0x04 if no error
 |
+#if !defined(FPGA_FAST)
 Test_05:
         movb    #~5,d7                  | test #
         lea     Test_05_txt,a4          | test descriptor text
@@ -749,7 +784,7 @@ Test_05:
         bra     Test_06
         clrl    d0
         movsb   d0,CXREG        | clr CXREG for M25 print$
-
+#endif FPGA_FAST
 |-----------------------------------------------------------------------------
 | Page Map Test
 |
@@ -766,6 +801,7 @@ Test_05:
 |       5AA5972C        2C5AA597        A5972C5A
 |       2C5AA597        972C5AA5        5AA5972C
 
+#if !defined(FPGA_FAST)
 Test_06:
         movb    #~6,d7                  | test #
         lea     Test_06_txt,a4          | test descriptor text
@@ -808,13 +844,13 @@ Test_06:
 24:
         movsl   a5@,d0                  | ***read Page Map address***
         movl    d3,d1
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         andl    #0xFF0007FF,d1          | strip unused data bits
         andl    #0xFF0007FF,d0
 #else
         andl    #0xFF07FFFF,d1          | strip unused data bits
         andl    #0xFF07FFFF,d0
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         cmpl    d0,d1                   | write pattern = read?
         beq     34f
         lea     mem_rd_err_txt,a4
@@ -835,7 +871,7 @@ Test_06:
         rorl    #8,d2                   | next modulo 3 pattern set
         cmpl    #patt_end,d2            | last pattern?
         bne     11b                     | if not
-
+#endif FPGA_FAST
 |-------------------------------------------------------------------------------
 | Setup trap/vector service for tests that follow which test MMU bus error traps
 | soft interrupts, parity generator/checker, and nmi interrupt from parity
@@ -846,8 +882,11 @@ setup_traps:
 |
 | First, unity map memory for all memory space.
 |
-
+#if !defined(FPGA_FAST)
         movw    #0xFFF,d5
+#else
+	movw    #0x00F,d5
+#endif	
         movl    #PME_MEMORY_0,d0           | First page map entry
         lea     PAGEOFF,a5              | initialize at to pt to lowest page
 5:
@@ -871,18 +910,20 @@ setup_traps:
         lea     MEM_ERR_PAGE,a0
         movl    #MERR_BASE,d0
         movsl   a0,a5@(0,d0:L)          | page for Memory error registers
+#ifdef SIRIUS
         lea     ECC_MEM_PAGE,a0         | ECC Memory Control Registers
         movl    #ECC_MEM_BASE,d0
         movsl   a0,a5@(0,d0:L)
+#endif
                                         | map in Clock chip for TOD test
         lea     TODCLK_PAGE,a0
         movl    #CLK_BASE,d0
         movsl   a0,a5@(0,d0:L)
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         lea     EEPROM_PAGE,a0
         movl    #EEPROM_BASE,d0
         movsl   a0,a5@(0,d0:L)
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
 #ifdef  SIRIUS
 |       Enable Memory module 0 by writing 0x40 to it
 
@@ -890,7 +931,101 @@ setup_traps:
         lea     ECC_MEM_ENA_REG,a5
         movw    d0,a5@                  | write ECC MEM ENABLE REGISTER
 #endif  SIRIUS
+#ifdef FPGA_WISHBONE
+        lea     DDR3_CSR_PAGE,a0        | DDR3 CSR register for configuration
+        movl    #DDR3_CSR_BASE,d0
+        movsl   a0,a5@(0,d0:L)
+        lea     SCRATCH_SRAM_PAGE,a0    | scratch memory so we have usable memory for the C code
+        movl    #SCRATCH_SRAM_BASE,d0   | used to configure the DDR3
+        movsl   a0,a5@(0,d0:L)
+#endif
 
+#ifdef FPGA_WISHBONE
+Test_12:
+        movb    #~0x12,d7                  | test #
+        lea     Test_12_txt,a4           | test descriptor text (wishbone sram)
+        lea     1200f,a6                 | save PC return
+        jra     test$
+
+1200:   movsb ENABLEREG,d0               | load sysen reg
+	orb  #EN_FPA,d0                  | enable wishbone bus
+	movsb d0,ENABLEREG               | writeback
+	
+        lea     1202f,a6                 | save return PC
+        jra     loop$                    | <<<TOP OF TEST LOOP>>>
+
+1202:	lea  SCRATCH_SRAM_BASE,a0        | base virtual adress of SRAM memory
+	movl #0xB105F00D,d0              | test value
+	movl d0,a0@(0)                   | write
+	movl #0xDECAFBAD,d1              | more test value
+	movl d1,a0@(4)			 | more write
+	movl a0@(0),d2			 | readback
+	cmpl d0,d2
+	bne 1201f                        | oups
+        movl a0@(4),d2
+	cmpl d1,d2
+	bne 1201f                        | oups
+	moveml  #0xFFFF,a0@(8)           | test 'burst' write
+	bra 1211f
+	
+1201:    | we're dead, the sram is not working
+
+        lea     sram_err_txt,a4
+        lea     1211f,a6
+        jra     error$
+
+	| it worked! now call the sdram init code
+1211:	
+        movb    #~0x13,d7                  | test #
+        lea     sdram_txt,a4          | test descriptor text
+        lea     1212f,a6                   | save PC return
+        jra     test$
+1212:	
+	lea  	1213f,a6
+	jra	_sdram_preinit
+1213:	nop
+
+Test_14:
+        movb    #~0x14,d7                  | test #
+        lea     Test_14_txt,a4           | test descriptor text (wishbone sram)
+        lea     1400f,a6                 | save PC return
+        jra     test$
+
+1400:   lea  0x00010000,a0               | somewhere in SDRAM memory
+	
+        lea     1402f,a6                 | save return PC
+        jra     loop$                    | <<<TOP OF TEST LOOP>>>
+
+1402:	movl #0xB105F00D,d0              | test value
+	movl d0,a0@(0)                   | write
+	movl #0xDECAFBAD,d1              | more test value
+	movl d1,a0@(4)			 | more write
+	movl a0@(0),d2			 | readback
+	cmpl d0,d2
+	bne 1401f                        | oups
+	
+        movl a0@(4),d2
+	cmpl d1,d2			 | more readback
+	bne 1401f                        | more potential oups
+	
+	cmpl #0,a0                       | have we tested 0 yet ?
+	beq 1411f                        | done, go to finish
+	
+	subl #0x800,a0                   | decrease address, loop
+	bra 1402b
+	
+1401:    | we're dead, the sdram is not working
+
+        lea     sdram_err_txt,a4
+        lea     1411f,a6
+        jra     error$
+
+	| it worked!
+1411:	nop
+	
+#endif
+	
+| This is where we start using memory
 | Third, setup stack pointer and unexpected trap/vector service
 
         movl    #0x800,sp               | set stack pointer 
@@ -967,11 +1102,11 @@ Test_08:
                                         | to this test
 #ifdef M25
         movl    #0xC00007FF,d0          | set rd valid,write allowed for page 1
-#elif defined(FERRARI)
+#elif defined(FERRARI) || defined(FPGA)
         movl    #0xC0000F80,d0          | set rd valid,write allowed for page 1
 #else	
         movl    #0xC0004000,d0          | set rd valid,write allowed for page 1
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         lea     BYTES_PER_PG,a5         | virtual page 1 address
         movl    #PAGEOFF,d1
         movsl   d0,a5@(0,d1:L)
@@ -1268,7 +1403,8 @@ Test_0B2:
 |       Re-enable display of test name.
 
         bclr    #bit_no_print,d7        | enable printing test name
-#ifndef SIRIUS
+#if !defined(SIRIUS)
+#if !defined(FPGA)
 |-----------------------------------------------------------------------------
 | Parity Error Tests
 |
@@ -1392,6 +1528,7 @@ Test_0F:
         movb    #0,MERR_BASE            | clear parity int register
         movb    #0,MERR_ADDR            | clear memory err register
         movl    #0,0x1000               | set good parity in test address
+#endif FPGA
 
 |       Size memory. Use Bus Error (nonexistant
 |       memory timeout) trap to determine size.  
@@ -1883,7 +2020,7 @@ check_sw:
         movl    d3,d5
         lsll    d0,d5                   | expand to memory address
 
-#ifndef SIRIUS 
+#if !defined(SIRIUS) && !defined(FPGA_FAST)
 |-----------------------------------------------------------------------------
 | Memory Test
 |
@@ -1993,7 +2130,7 @@ Test_10:
         movl    d4,a0                   | next pattern generator
         cmpl    #patt_end,a0            | last pattern +1?
         bne     60b                     | next memory pass
-#endif  SIRIUS 
+#endif  SIRIUS  FPGA_FAST
 #ifdef  SIRIUS 
 |************************************************************************
 |       Memory Modulo 3's Test
@@ -2210,11 +2347,11 @@ end_test:
         bne     30f                     | if yes  TEMP HACK MIKE
         bra     40f                     | if not
 30:
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         jra     Test_00
 #else
         jra     Start                   | if burn in test, restart
-#endif  M25 FERRARI
+#endif  M25 FERRARI FPGA
 40:
         movl    MEM_size,d2
 esckey:
@@ -2261,8 +2398,12 @@ esckey:
         blt     47f
         subl    #0x100000,d1            | adjust for size
 47:
-
+#if !defined(FPGA_FAST)
         subl    a5,a5                   | start a address 0
+#else
+	movl    d1,a5
+	subl    #0x00010000,a5          | only test a small amount (64 KiB), we know we only have 2 MiB for now
+#endif FPGA_FAST
         movl    #0xFFFFFFFF,d0          |
 50:
         movl    d0,a5@+                 | store it in memory
@@ -2302,21 +2443,21 @@ enbl_ecc:
         movl    #delay_10_sec,d0        | delay count for ~10 seconds
         bclr    #31, d3                 | Clear Port B flag bit
 70:
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    UARTACNTL,d1            | read Port A RX status
 #else
         movsb   UARTACNTL,d1            | read Port A RX status
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         btst    #RXREADY,d1             | an input character entered?
         bne     80f                     | if yes
 
         moveq   #0xf, d1
 71:     dbra    d1, 71b                 | Wait for SCC to recover
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    UARTBCNTL,d1            | read Port B RX status
 #else
         movsb   UARTBCNTL,d1            | read Port B RX status
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         btst    #RXREADY,d1             | an input character entered?
         bne     82f                     | if yes
 
@@ -2326,22 +2467,22 @@ enbl_ecc:
 80:
         moveq   #0xf, d0
 81:     dbra    d0, 81b                 | Wait for SCC to recover
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    UARTADATA, d0           | Read the character
 #else
         movsb   UARTADATA, d0           | Read the character
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         jra     84f
 82:
         moveq   #0xf, d0
 83:     dbra    d0, 83b                 | Wait for SCC to recover
 
         bset    #31, d3                 | Set bit to flag this is Port B
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    UARTBDATA, d0           | Read the character
 #else    
         movsb   UARTBDATA, d0           | Read the character
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
 84:
         andb    #0x7f, d0               | Strip off parity bit
         cmpb    #0x65, d0               | Is it an 'e'?
@@ -2574,7 +2715,7 @@ test$:
         movc    d0,sfc                  | instruction
         movc    d0,dfc
         movsb   d7,LEDREG               | output test # to LEDs
-        movl    #0xFFFF,d0
+        movl    #0x0002,d0
 10:
         subql   #1,d0
         bgt     10b
@@ -2641,32 +2782,32 @@ loop$end:
         bne     40f
         moveq   #FC_MMU,d0
         movc    d0,sfc                  | set sfc to MMU
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    UARTACNTL,d0            | read SCC status
 #else
         movsb   UARTACNTL,d0            | read SCC status
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         btst    #RXREADY,d0             | char rec'd?
         beq     1f                      | if so
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    UARTADATA,d0            | read char from Port A
 #else
         movsb   UARTADATA,d0            | read char from Port A
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         jra     2f                      | Skip over reading Port B
 1:
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    UARTBCNTL,d0            | read SCC status
 #else
         movsb   UARTBCNTL,d0            | read SCC status
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         btst    #RXREADY,d0             | char rec'd?
         beq     40f                     | if so
-#if defined(M25) || defined(FERRARI)  
+#if defined(M25) || defined(FERRARI) || defined(FPGA)  
         movb    UARTBDATA,d0            | read char
 #else
         movsb   UARTBDATA,d0            | read char
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
 2:
         cmpb    #op_skip_end,d0         |drop out of self test?
         bne     9f                      | nope
@@ -2880,44 +3021,44 @@ print$:
 |       Display to Port A
 |
         moveq   #-1, d0                 
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
 11:     movb    UARTACNTL,d1            | wait for SCC to be ready
 #else
 11:     movsb   UARTACNTL, d1
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         btst    #TXREADY, d1            | Wait for SCC to be ready
         dbne    d0, 11b                 | Loop until ready or timeout
 
         moveq   #0xf, d0
 12:     dbra    d0, 12b                 | Wait for character to be transmitted
 
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    d6, UARTADATA           | Send the character out
 #else
         movsb   d6, UARTADATA           | Send the character out
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         jra     123f                    | else go on printing
 | 
 |       Display to Port B 
 |
 120:
         moveq   #-1, d0
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
 121 :   movb    UARTBCNTL,d1            | wait for SCC to be ready
 #else  
 121:    movsb   UARTBCNTL, d1
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         btst    #TXREADY, d1            | Wait for SCC to be ready
         dbne    d0, 121b                | Loop until ready or timeout
  
         moveq   #0xf, d0
 122:    dbra    d0, 122b                | Wait for character to be transmitted
  
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    d6, UARTBDATA           | Send the character out
 #else  
         movsb   d6, UARTBDATA           | Send the character out
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
  
 123:
         addql   #1, d3                  | bump digit counter
@@ -2939,44 +3080,44 @@ print$:
 |       Display to Port A 
 |
         moveq   #-1, d0
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
 13:    movb    UARTACNTL,d1            | wait for SCC to be ready
 #else
 13:    movsb   UARTACNTL, d1
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         btst    #TXREADY, d1            | Wait for SCC to be ready
         dbne    d0, 13b                 | Loop until ready or timeout
 
         moveq   #0xf, d0
 14:    dbra    d0, 14b
 
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    d6,UARTADATA            | Send the character out
 #else
         movsb   d6, UARTADATA           | Send the character out
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         jra     143f
 | 
 |       Display to Port B 
 |
 140:
         moveq   #-1, d0
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
 141:   movb    UARTBCNTL,d1            | wait for SCC to be ready
 #else   
 141:   movsb   UARTBCNTL, d1
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
         btst    #TXREADY, d1            | Wait for SCC to be ready
         dbne    d0, 141b                | Loop until ready or timeout
  
         moveq   #0xf, d0
 142:   dbra    d0, 142b
  
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    d6,UARTBDATA            | Send the character out
 #else   
         movsb   d6, UARTBDATA           | Send the character out
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
 143:   jra     1b
 |       
 |       Message has been displayed.
@@ -3015,11 +3156,11 @@ UARTinit:                               | init uart
         cmpb    #0xff, d0               | are we done yet??
         jeq     3f
 
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
             movb        d0, UARTACNTL           | stuff
 #else
             movsb   d0, UARTACNTL           | stuff
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
 
         movl    #0x800, d1              | and wait
 2:      dbra    d1, 2b
@@ -3040,11 +3181,11 @@ UARTinit:                               | init uart
         cmpb    #0xff, d0               | are we done yet??
         jeq     6f
  
-#if defined(M25) || defined(FERRARI)
+#if defined(M25) || defined(FERRARI) || defined(FPGA)
         movb    d0, UARTBCNTL           | stuff
 #else   
         movsb   d0, UARTBCNTL           | stuff
-#endif M25 FERRARI
+#endif M25 FERRARI FPGA
  
         movl    #0x800, d1              | and wait
 5:      dbra    d1, 5b
@@ -3119,6 +3260,18 @@ int_error_txt:
         .asciz  "\015\012 Err 4: No Level 1 interrupt!"
 Test_0A_txt:
         .asciz  "\015\012TOD Clock Interrupt Test"
+#ifdef FPGA_WISHBONE
+Test_12_txt:
+        .asciz  "\015\012Wishbone SRAM Test"
+sram_err_txt:
+        .asciz  "\015\012Wishbone SRAM FAILED"
+sdram_txt:
+        .asciz  "\015\012Configuring SDRAM"
+Test_14_txt:
+        .asciz  "\015\012Wishbone SDRAM Test"
+sdram_err_txt:
+        .asciz  "\015\012Wishbone SDRAM FAILED"
+#endif FPGA_WISHBONE
 int_TOD_error_txt:
         .asciz  "\015\012 Err 21: TOD failed to interrupt!"
 MMU_access_txt:
