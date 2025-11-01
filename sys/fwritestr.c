@@ -67,6 +67,8 @@ prom_mem_batchrop ( struct pr_prpos a1, int a2, struct pr_prpos *a3, int a4 )
 #define CTRL_BRACK	27
 #define CTRL_QUE	127
 
+#ifdef WANT_FB
+
 void
 fwritechar ( unsigned char c )
 {
@@ -274,6 +276,7 @@ FeedLine:
     cursorcomp();       /* Restore the cursor to the screen */
 }
 
+#endif // WANT_FB
 
 void
 pos ( int x, int y)
@@ -289,6 +292,8 @@ pos ( int x, int y)
              y >= BOTTOM?       BOTTOM-1:
                                 y;
 }
+
+#ifdef WANT_FB
 
 static void
 cursorcomp ( void )
@@ -742,5 +747,7 @@ fwritestr ( char *addr, int len )
 }
 
 #endif GRUMMAN
+
+#endif // WANT_FB
 
 /* THE END */

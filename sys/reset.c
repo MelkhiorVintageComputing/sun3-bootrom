@@ -280,13 +280,15 @@ asm volatile("": : :"memory");
 	
 asm volatile("": : :"memory");
 
-#ifdef GRUMMAN1 /* Grumman has only ports A & B so we force it to A */
+//#ifdef GRUMMAN1 /* Grumman has only ports A & B so we force it to A */
+#ifndef WANT_FB
         if (r_vector == EVEC_RESET || r_vector == EVEC_BOOT_EXEC ||
            r_vector == EVEC_MENU_TSTS) {
                 gp->g_insource = INUARTA;        /* set pointer to keyboard */
                 gp->g_outsink =  INUARTA;       /* set pointer to video */
         }
-#endif GRUMMAN1
+#endif
+//#endif GRUMMAN1
 	
 asm volatile("": : :"memory");
 

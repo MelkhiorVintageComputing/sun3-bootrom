@@ -35,6 +35,8 @@
 extern struct keyboard  *keytables[];
 extern char *keystringtab[];
 
+#ifdef WANT_FB
+
 /* 
  * Getkey Initialization
  */
@@ -220,5 +222,7 @@ they should be put into the IF statement just above this switch block.
         }
     }
 }
+
+#endif // WANT_FB
 
 /* THE END */
