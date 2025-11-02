@@ -29,6 +29,10 @@ struct	eeprom {
 #define	EED_SCR_1024X1024	0x12
 #define EED_SCR_1600X1280       0x13    /* new for hi rez */
 #define EED_SCR_1440X1440       0x14
+#ifdef FPGA_FB
+#define EED_SCR_1280X1024       0x20    /* Full HD */
+#define EED_SCR_1920X1080       0x30    /* Full HD */
+#endif FPGA_FB
 /* 0x017 */	char	eed_dogaction;	/* action to take on watchdog reset */
 #define	EED_DOG_MONITOR		0x00	/* return to monitor command level */
 #define	EED_DOG_REBOOT		0x12	/* perform power on reset and reboot */

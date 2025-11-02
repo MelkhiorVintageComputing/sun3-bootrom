@@ -726,6 +726,7 @@ TraceCont:
 
                         case 2:        /* K2 - Reset just like power-up */
                                 resetinstr();
+				asm volatile("nop\nnop\n");
 
 #ifndef M25 /* this register isn't in the m25 (Sun-3/50) so we don't    */
             /* clear it if this is a Sun-3/50                           */

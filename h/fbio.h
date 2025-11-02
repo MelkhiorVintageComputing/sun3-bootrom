@@ -31,6 +31,9 @@ struct	fbtype {
 #define	FBTYPE_NOTSUN1		9		/* reserved for customer */
 #define	FBTYPE_NOTSUN2		10		/* reserved for customer */
 #define	FBTYPE_NOTSUN3		11		/* reserved for customer */
+#ifdef FPGA_FB
+#define FBTYPE_FPGA             12
+#endif FPGA_FB
 
 #define	FBIOGTYPE _IOR(F, 0, struct fbtype)
 

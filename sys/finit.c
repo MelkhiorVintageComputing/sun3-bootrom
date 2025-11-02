@@ -42,7 +42,7 @@ finit ( unsigned int newx, unsigned int newy )
                 WINLEFT = 16;
         } else
 #endif SIRIUS
- if(EEPROM->ee_diag.eed_scrsize == EED_SCR_1600X1280 && gp->g_fbtype != FBTYPE_SUN2COLOR){
+	if(EEPROM->ee_diag.eed_scrsize == EED_SCR_1600X1280 && gp->g_fbtype != FBTYPE_SUN2COLOR){
                 SCRWIDTH = 1600;
                 SCRHEIGHT = 1280;
 /* chek for row,col limits */
@@ -67,6 +67,20 @@ finit ( unsigned int newx, unsigned int newy )
                 t_rows = (t_rows * CHRHEIGHT) + 56;
                 WINTOP = t_rows;
                 WINTOP += 30;  /* tried 60  */
+#ifdef FPGA_FB
+	} else if (EEPROM->ee_diag.eed_scrsize == EED_SCR_1280X1024) {
+                SCRWIDTH = 1280;
+                SCRHEIGHT = 1024;
+                WINTOP = 56 + (1280-1152)/2;
+                WINLEFT = 64 + (1024-900)/2;
+		gp->g_fbtype = FBTYPE_FPGA;
+	} else if (EEPROM->ee_diag.eed_scrsize == EED_SCR_1920X1080) {
+                SCRWIDTH = 1920;
+                SCRHEIGHT = 1080;
+                WINTOP = 56 + (1920-1152)/2;
+                WINLEFT = 64 + (1080-900)/2;
+		gp->g_fbtype = FBTYPE_FPGA;
+#endif FPGA_FB
         } else {
                 SCRWIDTH = 1152;
                 SCRHEIGHT = 900;

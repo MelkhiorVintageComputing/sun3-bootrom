@@ -148,6 +148,7 @@ union pgmap_un {
 
 /*****************************************************************************/
 #ifdef PRISM
+#error "PRISM"
                         /* these are the physical page numbers */
 #define MEMPG_VIDEO     (0xFF000000 >> BYTES_PG_SHIFT)  /* prism bw frame buf */
 #define MEMPG_BW_ENABLE (0xFE400000 >> BYTES_PG_SHIFT)  /* enable plane */

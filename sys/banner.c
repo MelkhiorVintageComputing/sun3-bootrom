@@ -41,6 +41,9 @@ banner ( void )
         if (EEPROM->ee_diag.eed_showlogo != 0x12) {
           if (gp->g_outsink == OUTSCREEN)
                 printf("\t");
+#ifdef FPGA
+           printf ("Non-Sun Workstation, Model Sun-3/F, Sun-%s keyboard\n",                    gp->g_keybid == SUN3_KEYBD? "3": "2");
+#else
 #ifdef CARRERA
             printf ("Sun Workstation, Model %sSun-3/160%s, Sun-%s keyboard\n",
                        gp->g_fbtype == FBTYPE_SUN2COLOR? "": "Sun-3/75M or ",
@@ -58,6 +61,7 @@ banner ( void )
             printf ("Sun Workstation, Model Sun-3/110LC or Sun-3/130LC, Sun-%s keyboard\n",
                      gp->g_keybid == SUN3_KEYBD? "3": "2");
 #endif PRISM
+#endif FPGA
         } else {
                 printf("%s", &EEPROM->ee_diag.eed_banner[0]);
         }

@@ -204,7 +204,7 @@ _reset_common:
                                         | up so sp@(mis_sr) points there.
         moveml  #0xFFFF,sp@(mis_d0)     | Store all registers, including SSP
 #ifdef FPGA
-        movb    #~0x1f,d7
+        movb    #~0x1d,d7
         movsb   d7,LEDOFF
 #endif
         movl    sp,d7                   | Set "reset or trap" indicator.
@@ -302,7 +302,7 @@ _resettrap:
         movc    d0,sfc
 #ifdef FPGA
 	movc    d0,dfc                  | LEDOFF access
-        movb    #~0x1B,d0
+        movb    #~0x1f,d0
         movsb   d0,LEDOFF
 #endif
         movsb   CONTEXTOFF,d0

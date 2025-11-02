@@ -973,9 +973,21 @@ Test_12:
         lea     sram_err_txt,a4
         lea     1211f,a6
         jra     error$
+	
+1211:	| it worked! 
+#ifdef FPGA_FB
+	| shutdown the FB for now
+	lea  DDR3_CSR_BASE+0x102c,a4 | shutdown DMA (should be redundant)
+	movl #0,a4@
 
-	| it worked! now call the sdram init code
-1211:	
+        movl #0x000FFFFF,d4
+1230:   dbra d4,1230b | wait for DMA to drain
+	
+	lea  DDR3_CSR_BASE+0x1000,a4 | shutdown VTG
+	movl #0,a4@
+#endif FPGA_FB
+	
+	| now call the sdram init code
         movb    #~0x13,d7                  | test #
         lea     sdram_txt,a4          | test descriptor text
         lea     1212f,a6                   | save PC return
@@ -1020,8 +1032,19 @@ Test_14:
         lea     1411f,a6
         jra     error$
 
-	| it worked!
-1411:	nop
+1411:	| it worked! 
+#ifdef FPGA_FB
+	| starts the FB
+	lea  DDR3_CSR_BASE+0x102c,a0 | starts DMA
+	movl #0x01000000,a0@
+
+        movl  #0x0000FFFF,d0
+1430:   dbra  d0,1430b | wait for DMA to reload
+	
+	lea  DDR3_CSR_BASE+0x1000,a0 | starts VTG
+	movl #0x01000000,a0@
+	| we can't test the FB here as the video memory is not mapped.
+#endif
 	
 #endif
 	
@@ -1048,6 +1071,7 @@ Test_14:
 
 Test_07:
         movb    #~7,d7                  | test #
+	
         lea     Test_07_txt,a4          | test descriptor text
         lea     6f,a6                   | save PC return
         jra     test$
