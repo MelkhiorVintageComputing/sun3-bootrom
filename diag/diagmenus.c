@@ -48,6 +48,9 @@ static mieaddr_t to_mieaddr ( struct etherblock *, caddr_t );
 static mieoff_t to_mieoff ( struct etherblock *, caddr_t );
 static caddr_t from_mieaddr ( struct etherblock *, mieaddr_t );
 
+static void amd_loop_test( u_short mode,u_long vadrs);
+static void amd_wr_rd_test(u_short wdata);
+static int amd_ether_loop(u_short mode, u_long vadrs);
 
 /* Subroutine to perform bootpath test for all storage class peripheral
  * devices, i.e., those which use call boot(cmd).  The routine copies
@@ -579,7 +582,7 @@ loopback ( struct ereg *eregp, struct etherblock *blockp, int blocksize )
 }
 #endif  M25
 
-#ifdef  M25
+#if defined(M25) || defined(FPGA)
 /*
  * AMD Ethernet Tests
  */
@@ -614,9 +617,18 @@ amd_ether_test( void )
  * test routine.
  */
                 /* First, setup segment map addresses for 16 pages, 1 entry */
+#ifdef FPGA
+		printf("Setting up some memory for AMDLE\n * first setsmreg()\n");
+#endif FPGA
  
                 setsmreg(0x0f080000, 0xc0);     /* 16 pages */
+#ifdef FPGA
+		printf(" * second map()\n");
+#endif FPGA
                 map(0xf080000, 16*PAGESIZE, ETHERMEM, PM_MEM); /*map 16 pages*/
+#ifdef FPGA
+		printf("Calling test\n");
+#endif FPGA
 
                 vadrs = (u_long)(ETHERMEM + 0xF000000);
                 if (cmd == 'L')                 /* local loopback */
@@ -633,12 +645,8 @@ amd_ether_test( void )
 /*
  * Generic AMD Ethernet Loopback Test
  */
-
-amd_loop_test(mode,vadrs)
-
-        u_short mode;
-        u_long  vadrs;
-
+static void
+amd_loop_test( u_short mode,u_long vadrs)
 {
         int     error, pass = 0, errors =0;
 
@@ -663,50 +671,65 @@ amd_loop_test(mode,vadrs)
  * Tests ability to address and write/read access control/status register
  * 0 (CSR0) and 1 (CSR1) within the Am7990 Ethernet chip.
  */
-
-amd_wr_rd_test(wdata)
-        
-        u_short wdata;
+static void
+amd_wr_rd_test(u_short wdata)
 {
-        u_short *reg_addrs, *reg_data, rdata;
+        volatile u_short *reg_addrs, *reg_data;
+	u_short rdata;
         int     pass, error, errors = 0;
         
         pass = 0;
-        reg_addrs = (u_short *)AMD_ETHER_BASE + AMD_E_RAP;
-        reg_data = (u_short *)AMD_ETHER_BASE + AMD_E_RDP;
-        
+        reg_addrs = (volatile u_short *)AMD_ETHER_BASE + AMD_E_RAP;
+        reg_data = (volatile u_short *)AMD_ETHER_BASE + AMD_E_RDP;
+#ifdef FPGA
+	printf("amd_wr_rd_test : checking @ 0x%08x\n", reg_addrs);
+#endif FPGA
         do {
         /* Stop AMD ether chip in order to test its data lines */
 
                 error = 0;
                 *reg_addrs = AMD_E_CSR0;        /* select CSR0 */
+		asm volatile("": : :"memory");
                 *reg_data = AMD_E_STOP; /* output stop control bit to chip */
+		asm volatile("": : :"memory");
                 DELAY(10);              /* delay for data bus to decay */
+		asm volatile("": : :"memory");
                 rdata = *reg_data;      /* read back CSR0 data */
                 if ((rdata != AMD_E_STOP) && (gp->g_option != 'N')) {
                         error = 1;
                         ++errors;
                         printf("CSR0 Wr/Rd Error: exp %x, obs %x\n",AMD_E_STOP,rdata);
                 }
+#ifdef FPGA
+		else {
+                        printf("amd_wr_rd_test : CSR0 'stop' OK\n");
+		}
+#endif FPGA
 
                 /* Write/Read CSR1 within AMD ether chip */
 
                 *reg_addrs = AMD_E_CSR1;        /* select CSR1 */
+		asm volatile("": : :"memory");
                 *reg_data = wdata;      /* write CSR1 within AMD ether chip */
+		asm volatile("": : :"memory");
                 DELAY(10);      /* delay for data bus to discharge */
+		asm volatile("": : :"memory");
                 rdata = *reg_data;      /* read CSR1 within AMD ether chip */
                 if ((rdata != wdata) && (gp->g_option != 'N')) {
                         error = 1;
                         ++errors;
                         printf("CSR1 Wr/Rd Error: exp %x, obs %x\n", wdata, rdata);
                 }
+#ifdef FPGA
+		else {
+                        printf("amd_wr_rd_test : CSR1 OK\n");
+		}
+#endif FPGA
         } while (endtest(error, ++pass, errors));
 }
 
-
-amd_ether_loop(mode, vadrs)
-        u_short mode;
-        u_long  vadrs;  
+static int
+amd_ether_loop(u_short mode, u_long vadrs)
 {
         u_short *radrs, *rdata, found, exp, randomseed, loops;
         int all, timeleft, x;

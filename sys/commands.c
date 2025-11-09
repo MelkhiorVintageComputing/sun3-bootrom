@@ -728,7 +728,8 @@ TraceCont:
                                 resetinstr();
 				asm volatile("nop\nnop\n");
 
-#ifndef M25 /* this register isn't in the m25 (Sun-3/50) so we don't    */
+#if !defined(M25) && !defined(FPGA)
+	    /* this register isn't in the m25 (Sun-3/50) so we don't    */
             /* clear it if this is a Sun-3/50                           */
 
                                 ETHER_BASE->obie_noreset = 0; /* reset the  */
@@ -1113,7 +1114,7 @@ menutests ( int space )
 
         for (;;) {
                 printf("\n\nExtended Test Menu:  (Enter 'q' to return");                        printf(" to Monitor)\n\nCmd -  Test\n\n");
-#ifdef M25
+#if defined(M25) || defined(FPGA)
                 display_opt("ae", "Ethernet");
 #else
                 display_opt("ie", "Ethernet");
@@ -1160,12 +1161,12 @@ menutests ( int space )
 				 */
                 switch (l) {
  
-#ifdef  M25
+#if defined(M25) || defined(FPGA)
                 case(int)'EA':  /* AMD Ethernet test */
                         amd_ether_test();     /* execute ethernet test */
                         break;
 #endif  M25
-#ifndef M25
+#if !defined(M25) && !defined(FPGA)
                 case (int)'EI': /* Ethernet test */
                         ether_test(); /* execute ethernet test */
                         break;

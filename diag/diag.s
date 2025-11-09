@@ -178,8 +178,9 @@ EEPROM_PAGE      =       0xf4000020      | physical page, EEPROM
 TODCLK_PAGE      =       0xf4000030      | physical page, TOD clock
 MEM_ERR_PAGE     =       0xf4000040      | physical page, parity register
 INT_PAGE         =       0xf4000050      | physical page, interrpt register 
-ETHER_PAGE       =       0xf4000060      | physical page, ethernet chip 
+ETHER_PAGE       =       0xf4000060      | physical page, ethernet chip (intel)
 EPROM_PAGE       =       0xf4000080      | physical page, EPROM
+AMDLE_PAGE       =       0xf4000090      | physical page, ethernet chip (amd)
 ECC_MEM_PAGE     =       0xf40000f0      | physical page, ECC MEM control
 
 #ifdef FPGA_WISHBONE
@@ -210,6 +211,10 @@ ECC_DIAG_REG    =       ECC_MEM_BASE + 8 | virtual address, ECC diag reg
 MEMINIT_PAGE    =       0xFFFA000       | page used to intialize upper memory
 #endif SIRIUS
 CLK_BASE        =       0xFFFC000       | the clock base address virtual
+
+#ifdef FPGA_TEST_ETHER
+AMDLE_BASE      =       0xFFFE000      | virtual page, AMDLE, not the proper one from the C code, test only
+#endif
 
 #ifdef FPGA_WISHBONE
 |--------------------------------------------------------------------------
@@ -938,6 +943,30 @@ setup_traps:
         lea     SCRATCH_SRAM_PAGE,a0    | scratch memory so we have usable memory for the C code
         movl    #SCRATCH_SRAM_BASE,d0   | used to configure the DDR3
         movsl   a0,a5@(0,d0:L)
+#endif FPGA_WISHBONE
+#ifdef FPGA_TEST_ETHER
+test_ether:
+	// setup MMU
+        lea     AMDLE_PAGE,a0
+        movl    #AMDLE_BASE,d0
+        movsl   a0,a5@(0,d0:L)
+	lea 	AMDLE_BASE,a0
+	
+666:	movw    #0x0000,a0@(2) // write to address port: CSR0
+	movw    #0x0004,a0@(0) // write to data port: STOP (also allows us to update the other CSR)
+	movw    #0x0000,a0@(2) // write to address port, mostly to clean the data bus
+	movw    a0@(0),d0
+	cmpw    #0x0004,d0
+	bne     666b
+
+667:	movw    #0x0001,a0@(2) // write to address port: CSR1
+	movw    #0xBEEF,a0@(0) // write to data port
+	movw    #0x0001,a0@(2) // write to address port, mostly to clean the data bus
+	movw    a0@(0),d0
+	cmpw    #0xBEEE,d0 // low order bit read as zero
+	bne     667b
+	
+end_test_ether:
 #endif
 
 #ifdef FPGA_WISHBONE
@@ -986,7 +1015,6 @@ Test_12:
 	lea  DDR3_CSR_BASE+0x1000,a4 | shutdown VTG
 	movl #0,a4@
 #endif FPGA_FB
-	
 	| now call the sdram init code
         movb    #~0x13,d7                  | test #
         lea     sdram_txt,a4          | test descriptor text
@@ -1032,7 +1060,7 @@ Test_14:
         lea     1411f,a6
         jra     error$
 
-1411:	| it worked! 
+1411:	| it worked!
 #ifdef FPGA_FB
 	| starts the FB
 	lea  DDR3_CSR_BASE+0x102c,a0 | starts DMA
@@ -1044,9 +1072,8 @@ Test_14:
 	lea  DDR3_CSR_BASE+0x1000,a0 | starts VTG
 	movl #0x01000000,a0@
 	| we can't test the FB here as the video memory is not mapped.
-#endif
-	
-#endif
+#endif FPGA_FB
+#endif FPGA_WISHBONE
 	
 | This is where we start using memory
 | Third, setup stack pointer and unexpected trap/vector service
@@ -1125,12 +1152,20 @@ Test_08:
         movl    a0,8                    | setup bus error vector to point
                                         | to this test
 #ifdef M25
+	// just before 16 MiB
         movl    #0xC00007FF,d0          | set rd valid,write allowed for page 1
-#elif defined(FERRARI) || defined(FPGA)
+#elif defined(FERRARI)
+	// just before 32 MiB
         movl    #0xC0000F80,d0          | set rd valid,write allowed for page 1
-#else	
+#elif defined(FPGA)
+	// let's be reasonable and limit ourselves to 128 MiB for now
+	// the memory sizing code will blow up long before that in its current version
+	// SIRIUS uses a different algorithm (it counts installed 8 MiB ECC boards...)
         movl    #0xC0004000,d0          | set rd valid,write allowed for page 1
-#endif M25 FERRARI FPGA
+#else
+	// right on 128 MiB (SIRIUS, other ?)
+        movl    #0xC0004000,d0          | set rd valid,write allowed for page 1
+#endif M25 FERRARI
         lea     BYTES_PER_PG,a5         | virtual page 1 address
         movl    #PAGEOFF,d1
         movsl   d0,a5@(0,d1:L)
@@ -1372,12 +1407,11 @@ Test_0B1:
         lea     Test_0B2,a6
         jra     loop$end                | <<<BOTTOM OF TEST LOOP>>>
 
-
 |-----------------------------------------------------------------------
 | Verify that attempting to write a write protected page causes a bus error
 | with the protect error bit set in the bus error register.
-
 Test_0B2:
+#if 1
         movb    #~0xB,d7                        | test # >> LEDs
         lea     MMU_protect_txt,a4
         lea     300f,a6
@@ -1416,13 +1450,12 @@ Test_0B2:
         jra     loop$end                | <<<BOTTOM OF TEST LOOP>>>
 |
 |       Restore wr/rd access to page 1
+#endif
 390:
         movl    #PME_MEMORY_1,d3
         lea     BYTES_PER_PG,a5
         movl    #PAGEOFF,d4
         movsl   d3,a5@(0,d4:L)
-
-
 
 |       Re-enable display of test name.
 
@@ -1568,13 +1601,38 @@ Test_0F:
         movb    a5@,d0                  | ***attempt to read address***
         addl    #0x100000,a5            | next 1 MByte
         cmpl    #0x2000000,a5           | at 32 Bbytes yet?
+#ifdef FPGA
+	beq 217f | we need to check for 32+ Mbytes, but it's not mapped
+	bra 216b | not at 32 Mib yet, just continue the normal loop
+217:	lea     PAGEOFF+BYTESPERPG*5,a0  | we need more mapping, set it up in the sixth page
+	movl    #PME_MEMORY_0+0x1000,d0 |
+218:	movsl	d0,a0@                  | Write page map entry
+	movb	BYTESPERPG*5,d3		| ***attempt to read address***
+	addl    #0x80,d0		| next megabyte (for page so 0x100000 >> 13)
+	addl    #0x00100000,a5		| next megabyte (for sizing)
+	cmpl    #0x08000000,a5          | at 128 MiB yet?
+	bne 218b			| if not, loop
+	bra 220f			| jump to end
+#else
         bne     216b                    | if not & not bus err
+#endif FPGA
 220:
         movl    a5,d5                   | save top of memory +1
+#ifdef FPGA
+	| we need to reset page #0 in case we messed with it for > 32 MiB
+        movl    #PME_MEMORY_0+5,d0      | Second page map entry
+        lea     PAGEOFF+BYTESPERPG*5,a5   | initialize at to pt to lowest page
+        movsl   d0,a5@                  | Write page map entry
+#endif FPGA
         moveq   #20,d0
         movl    d5,d3                   | shift to make MBytes
         asrl    d0,d3
         movl    d3,MEM_size             | save memory size in page RAM
+#ifdef FPGA
+        lea     mem_sized_txt,a4       | "Found ... memory"
+        lea     230f,a6
+        jra     print$
+#endif
 230:
 #endif SIRIUS
 #ifdef SIRIUS           
@@ -2066,8 +2124,13 @@ check_sw:
 Test_10:
         bset    #bit_print_all,d7
         cmpl    #0x2000000,d5           | must not write over our mapped pages 
-        blt     1f 
-        subl    #0x20000,d5             | adjust for size 
+        blt     1f
+#ifdef FPGA
+	| if we have way more than 32 MiB, the subl isn't adequate
+	movl    #0x01FE0000,d5         | test max 32 MiB - 128 KiB
+#else
+        subl    #0x20000,d5             | adjust for size
+#endif
 1: 
         movb    #~0x10,d7               | 0xF > LED display
         lea     Test_11_txt,a4
@@ -2420,7 +2483,12 @@ esckey:
 #else
         cmpl    #0x2000000,d1           | must not write over our mapped pages
         blt     47f
+#ifdef FPGA
+	| same as before
+	movl    #0x01FE0000,d1
+#else
         subl    #0x100000,d1            | adjust for size
+#endif
 47:
 #if !defined(FPGA_FAST)
         subl    a5,a5                   | start a address 0
@@ -3323,6 +3391,10 @@ par_st_err_txt:
 #endif  SIRIUS
 mem_sizing_txt:
         .asciz  "\015\012Sizing Memory"
+#ifdef FPGA
+mem_sized_txt:
+	.asciz "\015\012Found %d3 MiBytes (%d5 bytes) of memory"
+#endif
 #ifdef SIRIUS
 Test_ecc_txt:
         .asciz  "\015\012ECC Error Tests"
@@ -3359,6 +3431,8 @@ unex_pe_txt:
         .asciz  "\015\012 Err 15: Unexp'd parity err trap, pc 0x%d0, mem_err 0x%d5"
 #endif SIRIUS
 Test_11_txt:
+	| the original code is approximate, it displays d3 for everyone, but not-Sirius actually use d5 for the tested value (in bytes), d3 what is supposed to be tested but gets restricted to < 32 MiB (in MiB)
+	| but d5 cannot be printed by print only d0..d3
         .asciz  "\015\012Memory Test (testing %d3 Mbytes)"
 nmi_ques_int_txt:
         .asciz  "\015\012 Err 12: NMI int with bad status, obs 0x%d0"

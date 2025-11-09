@@ -41,20 +41,18 @@ struct boottab *(boottab[]) = {
         &iedriver,
         0,
 };
-#else
+#elif !defined(FPGA)
 // tjt - this is what I build with.
 // The 3-160 has no on-board scsi.
 struct boottab *(boottab[]) = {
         &iedriver,
         0,
 };
-#endif
-
-#ifdef ORIGINAL
+#else // ORIGINAL
 struct boottab *(boottab[]) = {
         &sddriver,
         &stdriver,
-#ifdef M25
+#if defined(M25) || defined(FPGA)
         &ledriver,
 #else M25
         &iedriver,
@@ -107,7 +105,7 @@ struct boottab *(boottab[]) = {
         &ipdriver,
 #endif
         &sddriver,
-#ifdef M25
+#if defined(M25) || defined(FPGA)
         &ledriver,
 #else M25
         &iedriver,

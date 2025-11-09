@@ -101,14 +101,15 @@ getfc3 ( u_long size, char *addr )
 			asm volatile ( "movesb %1, %0" : "=r" (rv) : "m" (addr) );
 			return rv;
 		}
-
+	else
         if ( size == sizeof(u_short) ) {
 			asm volatile ( "movesw %1, %0" : "=r" (rv) : "m" (addr) );
 			return rv;
 		}
-
+	else {
 		asm volatile ( "movesl %1, %0" : "=r" (rv) : "m" (addr) );
 		return rv;
+	}
 }
 
 void
@@ -120,12 +121,13 @@ setfc3 ( u_long size, char *addr, u_long entry)
         if ( size == sizeof(u_char) ) {
 			asm volatile ( "movesb %0, %1" : : "r" (entry), "m" (addr) );
 		}
-
+	else
         if ( size == sizeof(u_short) ) {
 			asm volatile ( "movesw %0, %1" : : "r" (entry), "m" (addr) );
 		}
-
+	else {
 		asm volatile ( "movesl %0, %1" : : "r" (entry), "m" (addr) );
+	}
 }
 
 /* Never used */

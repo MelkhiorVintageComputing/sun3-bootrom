@@ -211,6 +211,7 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
 
         /* Reset the chip */
         le->le_rap = LE_CSR0;
+	asm volatile("": : :"memory");
         le->le_csr = LE_STOP;
 
         /* Perform the basic initialization */

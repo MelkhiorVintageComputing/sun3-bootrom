@@ -11,7 +11,8 @@
 # M25 is the 3/50
 # FERRARI is the 3/60, preliminary support added by Romain
 
-IDENT='-DID="Rev 2.1"' -DSUN3 -DCARRERA -DFPGA -DFPGA_WISHBONE -DFPGA_FB -DWANT_KB -DWANT_FB #-DFPGA_FAST # -DWANT_SCSI
+IDENT='-DID="Rev 2.1F"' -DSUN3 -DCARRERA -DFPGA -DFPGA_WISHBONE -DFPGA_FB # -DWANT_KB -DWANT_FB #-DFPGA_FAST # -DWANT_SCSI # -DFPGA_TEST_ETHER
+#IDENT='-DID="Rev 2.1F"' -DSUN3 -DCARRERA -DFPGA -DFPGA_FAST -DFPGA_TEST_ETHER
 
 # Now this is in bootrom.lds
 #RELOC=0FEF0000
@@ -46,7 +47,7 @@ OBJS = romvec.o trap.o mapmem.o reset.o cpu.map.o \
 	keypress.o getkey.o ktab.s2.o \
 	boot.o monalloc.o common.o blts.o \
 	expand.o finit.o fwritestr.o rop.o gallmash.o mem_grab.o \
-	if_ie.o \
+	if_le.o \
 	sc.o sd.o xxboot.o xxprobe.o \
 	scutils.o space.o st.o \
 	inet.o tftp.o \
@@ -171,6 +172,9 @@ gallmash.o: ../sys/gallmash.c
 	$(CC) -c $<
 
 if_ie.o: ../dev/if_ie.c
+	$(CC) -c $<
+
+if_le.o: ../dev/if_le.c
 	$(CC) -c $<
 
 mem_grab.o: ../sys/mem_grab.c
