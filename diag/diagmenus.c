@@ -25,6 +25,9 @@
 #include "../h/pixrect.h"
 #include "../h/protos.h"
 
+#include "../sun3/cmp.h"
+#include "../sun3/patt.h"
+
 extern  struct sptab speedtab[];
 // extern  struct sptab {int speeds, counts};
 
