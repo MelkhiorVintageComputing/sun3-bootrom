@@ -1,4 +1,5 @@
-
+#ifndef __SAIO_H__
+#define __SAIO_H__
 /*      @(#)saio.h 1.1 86/09/27 SMI     */
 
 /*
@@ -109,3 +110,4 @@ enum RESOURCES {
 #define DEF_MBIO_VA     MBIO_BASE
 #define MAX(a,b)        (((a)>(b))? (a): (b))
 
+#endif __SAIO_H__

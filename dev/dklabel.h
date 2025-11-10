@@ -1,4 +1,5 @@
-
+#ifndef __DKLABEL_H__
+#define __DKLABEL_H__
 /*      @(#)dklabel.h 1.1 86/09/27 SMI  */
 
 /*
@@ -39,3 +40,5 @@ struct dk_label {
 };
 
 #define DKL_MAGIC       0xDABE
+
+#endif __DKLABEL_H__

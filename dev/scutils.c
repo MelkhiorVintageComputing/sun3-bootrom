@@ -8,12 +8,15 @@
 #include "../sun3/cpu.addrs.h"
 #include "../sun3/cpu.map.h"
 #include "../h/pginit.h"
+#include "../sun3/trap.h"
 #define u_short unsigned short
 #define u_char  unsigned char
 #define u_int           unsigned int
 #include "../sun3/memreg.h"
 #include "../dev/cg2reg.h"
 #include "../h/eeprom.h"
+
+#include "../sys/mapmem.h"
 
 #define TEMP_PAGE ((unsigned short *)(VIDEOMEM_BASE))
 #define ENA_VIDEO       0x08

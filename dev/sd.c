@@ -23,6 +23,8 @@
 
 #include "../h/protos.h"
 
+int chklabel ( struct dk_label *label );
+
 int sidoit ( struct scsi_cdb *, struct scsi_scb *, struct saioreq * );
 
 static int sdspin ( struct saioreq *, int );

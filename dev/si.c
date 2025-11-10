@@ -125,7 +125,7 @@ siprobe ( struct saioreq *sip )
          * bytes in the vme address space.
          * peek past 2K bytes to determine which host adaptor is there.
          */
-        if (peek((int)sir+0x800) == -1) {
+        if (peek((void*)((int)sir+0x800)) == -1) {
                 return (1);
         } else {
                 return (0);
