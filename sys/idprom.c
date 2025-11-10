@@ -25,11 +25,11 @@ idprom ( unsigned char format, struct idprom *idp )
         unsigned char *cp, sum=0, promform;
         short i;
 
-        getidprom(&promform, 1);                /* Get format byte */
+        getidprom((struct idprom *)&promform, 1);                /* Get format byte */
         if (format != promform)
                 return promform;
 
-        getidprom((unsigned char *)idp, sizeof(*idp));  /* The whole thing */
+        getidprom(idp, sizeof(*idp));  /* The whole thing */
         cp = (unsigned char *)idp;
         for (i=0; i<16; i++)
                 sum ^= *cp++;

@@ -43,6 +43,7 @@
 #include "../dev/saio.h"
 #include "../h/enable.h"
 #include "../h/eeprom.h"
+#include "../sun3/machdep.h"
 
 #include "../diag/diagmenus.h" /* required for struct involving the SCSI */
                                  /* logic and reseting it with the K2 cmd  */
@@ -743,13 +744,13 @@ TraceCont:
                                   /* in the k2reset code                    */
                                 reset_uart(&KEYBMOUSE_BASE[0].zscc_control,1);
                                 
-                                setfc3(sizeof(u_char),ENABLEREG,0);
+                                setfc3(sizeof(u_char),(char*)ENABLEREG,0);
                                         /* clear SYSTEM enable reg */
 
-                                setfc3(sizeof(u_char),UDMAENABLEOFF,0);
+                                setfc3(sizeof(u_char),(char*)UDMAENABLEOFF,0);
                                         /* clear USR DVMA enable reg */
 
-                                setfc3(sizeof(u_char),DIAGREG,0);
+                                setfc3(sizeof(u_char),(char*)DIAGREG,0);
                                         /* clear USR DVMA enable reg */
 
                                 MEMORY_ERR_BASE->mr_er = 0;

@@ -22,6 +22,9 @@
 #include "../h/pixrect.h"
 #include "../h/protos.h"
 
+#include "inet.h"
+#include "../sun3/cmp.h"
+
 #define millitime() (*romp->v_nmiclock)
 
 struct ether_addr etherbroadcastaddr = { 

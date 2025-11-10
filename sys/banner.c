@@ -16,7 +16,7 @@
 #include "../h/fbio.h"
 #include "../h/eeprom.h"
 
-// #include "../h/protos.h"
+#include "../h/protos.h"
 #include "../h/config.h"
 
 static void display_border ( void );

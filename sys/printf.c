@@ -10,6 +10,8 @@ char chardigs[]="0123456789ABCDEF";
 // This would be a very different game ...
 // #include <stdarg.h>
 
+void putchar(unsigned char);
+
 static void printn (unsigned long, int );
 
 /*

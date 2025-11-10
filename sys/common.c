@@ -26,6 +26,9 @@
 #include "../h/types.h"
 #endif major
 #include "../dev/dklabel.h"
+#include "../h/protos.h"
+
+#include "common.h"
 
 char msg_spinup[] = "\n\007Waiting for disk to spin up...\n\n\
 Please start it, if necessary, -OR- press any key to quit.\n\n";
@@ -33,17 +36,20 @@ char msg_nolabel[] = "No label found - attempting boot anyway.\n";
 char msg_noctlr[] = "No controller at mbio %x\n";
 
 void
-bzero ( char *p, int n )
+bzero ( void *pv, int n )
 {
         register char zeero = 0;
+	char *p = (char*)pv;
 
         while (n > 0)
                 *p++ = zeero, n--;      /* Avoid clr for 68000, still... */
 }
 
 void
-bcopy ( char *src, char *dest, int count)
+bcopy ( void *srcv, void *destv, int count)
 {
+	char *src = (char*)srcv;
+	char *dest =  (char*)destv;
         count--;
         do {
                 *dest++ = *src++;

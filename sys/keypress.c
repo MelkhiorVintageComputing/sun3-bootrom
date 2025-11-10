@@ -21,6 +21,7 @@
 #define keystate        gp->g_keystate
 #define keybid          gp->g_keybid
 
+void abortfix ( void );
 
 /*
  * A keypress was received (from a parallel or serial keyboard).

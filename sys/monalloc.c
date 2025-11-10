@@ -18,6 +18,11 @@
 #include "../dev/saio.h"
 #include "../h/globram.h"
 
+union pgmapent_wrapper {
+	struct pgmapent pg;
+	int val;
+};
+
 /*
  * Valid, supervisor-only, memory page's map entry.
  * (To be copied to a map entry and then modified.)
@@ -75,7 +80,10 @@ resalloc ( enum RESOURCES type, unsigned bytes)
              bytes > 0;
              raddr += BYTESPERPG, bytes -= BYTESPERPG,
               gp->g_nextmainmap.pm_page -= 1) {
-                setpgmap(raddr, gp->g_nextmainmap);
+		union pgmapent_wrapper w;
+		w.pg = gp->g_nextmainmap;
+		setpgmap(raddr, w.val);
+                //setpgmap(raddr, gp->g_nextmainmap);
         } 
 
         return addr;
@@ -135,7 +143,10 @@ devalloc ( enum MAPTYPES devtype, char *physaddr, unsigned bytes )
              pages > 0;
              raddr += BYTESPERPG, pages -= BYTESPERPG,
               mapper.pm_page -= 1) {
-                setpgmap(raddr, mapper);
+                union pgmapent_wrapper w;
+                w.pg = mapper;
+                setpgmap(raddr, w.val);
+                //setpgmap(raddr, mapper);
         } 
 
         return addr + ((int)(physaddr) & (BYTESPERPG-1));

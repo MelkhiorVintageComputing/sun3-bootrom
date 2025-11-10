@@ -12,13 +12,19 @@
 
 extern unsigned char f_bitmap[], f_index[], f_data_hi[], f_data_lo[];
 
+void fexpand ( unsigned short *ptable, unsigned char *pbitmap, int bitmaplen,
+               unsigned char *pindex, unsigned char *pdata_hi, unsigned char *pdata_lo );
+int init_scolor ( void );
+void pos ( int x, int y);
+
+
 void
 finit ( unsigned int newx, unsigned int newy )
 {
 		unsigned short t_cols,t_rows;  /* for cols and rows  calc */
 
         /* Expand the compressed font into RAM */
-        fexpand (font, f_bitmap, FBITMAPSIZE, f_index, f_data_hi, f_data_lo);
+        fexpand ((unsigned short *)font, f_bitmap, FBITMAPSIZE, f_index, f_data_hi, f_data_lo);
 #ifdef PRISM
 
         gp->g_fbtype = FBTYPE_SUN4COLOR;           

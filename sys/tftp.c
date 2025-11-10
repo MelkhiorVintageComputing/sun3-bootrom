@@ -21,14 +21,9 @@
 #undef DEV_BSIZE
 #undef MAX
 #include "../h/tftp.h"
-
-// tjt - in inet.c
-void inet_print ( struct in_addr );
-void inet_init ( struct saioreq *, struct sainet *, char * );
-int ip_output ( struct saioreq *, caddr_t, int, struct sainet *, caddr_t );
-int ip_input ( struct saioreq *, caddr_t, struct sainet * );
-int in_lnaof ( struct in_addr in );
-
+#include "../sys/inet.h"
+#include "../sys/common.h"
+#include "../sys/printf.h"
 
 char    *tftp_errs[] = {
         "not defined",
