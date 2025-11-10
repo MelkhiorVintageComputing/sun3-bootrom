@@ -1,3 +1,5 @@
+#ifndef __MACHDEP_H__
+#define __MACHDEP_H__
 
 /*      @(#)machdep.h 1.1 86/09/27 SMI  */
 
@@ -257,3 +259,16 @@ struct mc68k_vector {
 };
 #define spurious        e_int[0]
 #define ex_vector       ((struct mc68k_vector *)0)
+
+u_long getfc3 ( u_long size, char *addr );
+void setfc3 ( u_long size, char *addr, u_long entry);
+cx_size getcxreg ( void );
+cx_size setcxreg ( cx_size entry);
+sm_size getsmreg ( u_long addr );
+sm_size setsmreg ( u_long addr, sm_size entry);
+pg_size getpgreg ( u_long addr );
+pg_size setpgreg ( u_long addr, pg_size entry );
+
+void map ( u_long virt,  u_long size, u_long phys, enum pm_type space );
+
+#endif __MACHDEP_H__
