@@ -200,8 +200,8 @@ lanceinit ( struct saioreq *sip )
 static int
 lancereset ( struct lance_softc *es, struct saioreq *sip )
 {
-        register struct le_device *le = es->es_lance;
-        register struct le_init_block *ib = &es->es_ib;
+        register volatile struct le_device *le = es->es_lance;
+        register volatile struct le_init_block *ib = &es->es_ib;
         int timeout = TIMEBOMB;
         int i;
 
@@ -210,6 +210,7 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
 #endif DEBUG1
 
         /* Reset the chip */
+	asm volatile("": : :"memory");
         le->le_rap = LE_CSR0;
 	asm volatile("": : :"memory");
         le->le_csr = LE_STOP;
@@ -246,16 +247,24 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
         bzero((caddr_t)&es->es_tmd, sizeof (struct le_md));
 
         /* Give the init block to the chip */
+	asm volatile("": : :"memory");
         le->le_rap = LE_CSR1;   /* select the low address register */
+	asm volatile("": : :"memory");
         le->le_rdp = (long)ib & 0xffff;
 
+	asm volatile("": : :"memory");
         le->le_rap = LE_CSR2;   /* select the high address register */
+	asm volatile("": : :"memory");
         le->le_rdp = ((long)ib >> 16) & 0xff;
 
+	asm volatile("": : :"memory");
         le->le_rap = LE_CSR3;   /* Bus Master control register */
+	asm volatile("": : :"memory");
         le->le_rdp = LE_BSWP;
 
+	asm volatile("": : :"memory");
         le->le_rap = LE_CSR0;   /* main control/status register */
+	asm volatile("": : :"memory");
         le->le_csr = LE_INIT;
 
         while( ! (le->le_csr & LE_IDON) ) {
@@ -264,7 +273,9 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
                     return (1);
                 }
         }
+	asm volatile("": : :"memory");
         le->le_csr = LE_IDON;   /* Clear the indication */
+	asm volatile("": : :"memory");
 
         /* Hang out the receive buffers */
         es->es_next_rmd = 0;
@@ -272,7 +283,9 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
         install_buf_in_rmd(es->es_rbuf[0], &es->es_rmd[0]);
         install_buf_in_rmd(es->es_rbuf[1], &es->es_rmd[1]);
 
+	asm volatile("": : :"memory");
         le->le_csr = LE_STRT;
+	asm volatile("": : :"memory");
 
 #ifdef DEBUG1
         printf("le: lancereset returns OK\n");
@@ -348,6 +361,7 @@ lancexmit ( struct lance_softc *es, char *buf, int count )
         tmd->lmd_flags3 = 0;
         tmd->lmd_flags = LMD_STP | LMD_ENP | LMD_OWN;
         
+	asm volatile("": : :"memory");
         le->le_csr = LE_TDMD;
 
         do {
@@ -403,7 +417,9 @@ lancepoll ( struct lance_softc *es, char *buf )
         printf("le: received packet\n");
 #endif DEBUG1
 
+	asm volatile("": : :"memory");
         le->le_csr = LE_RINT;           /* Clear interrupt */
+	asm volatile("": : :"memory");
 
         rmd = &es->es_rmd[es->es_next_rmd];
 
@@ -479,7 +495,9 @@ lanceclose ( struct saioreq *sip )
         struct le_device *le = es->es_lance;
 
         /* Reset the chip */
+	asm volatile("": : :"memory");
         le->le_rap = LE_CSR0;
+	asm volatile("": : :"memory");
         le->le_csr = LE_STOP;
 }
 

@@ -43,8 +43,8 @@ struct le_device {
 
 // tjt - the 7990 really does have 16 bit registers.
 struct le_device {
-        vu_16	 le_rdp;            /* Register Data Port */
-        vu_16 	 le_rap;            /* Register Address Port */
+        volatile vu_16	 le_rdp;            /* Register Data Port */
+        volatile vu_16 	 le_rap;            /* Register Address Port */
 };
 
 #define le_csr le_rdp
