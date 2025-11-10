@@ -1,3 +1,5 @@
+#ifndef __CPU_MAP_H__
+#define __CPU_MAP_H__
 /*
  * @(#)cpu.map.h 1.1 86/09/27 SMI      
  * Copyright (c) 1986 by Sun Microsystems, Inc.
@@ -13,8 +15,6 @@
  * need is seventeen different copies of this file, like we have with the
  * Sun-1 header files.
  */
-
-#ifndef ADRSPC_SIZE
 
 /*
  * The address space available to a single process is 256 Megabytes.
@@ -230,7 +230,7 @@ union pgmap_un {
  * implementation doesn't support structures returned from reentrant routines.
  */ 
 
-#ifdef NOTANSI
+#if O //def NOTANSI
 extern /*struct pgmapent*/ getpgmap();  /* (addr) */
 extern                     setpgmap();  /* (addr, entry) */
 extern segnum_t getsegmap();            /* (addr) */
@@ -242,6 +242,15 @@ extern context_t getusercontext();      /* () */
 extern           setusercontext();      /* (entry) */
 #endif
 
-#endif ADRSPC_SIZE
+int /*struct pgmapent*/ getpgmap ( void * );
+void                    setpgmap( void *, int );
+segnum_t        getsegmap ( void * );
+void        setsegmap ( void *, int );
+int getcontext ( void );                // never used
+void setcontext ( int );
+void setcxsegmap ( int, void *, int);
+void setcxsegmap_noint ( int, void *, int);
 
 /* THE END */
+
+#endif __CPU_MAP_H__
