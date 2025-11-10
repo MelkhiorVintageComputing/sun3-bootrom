@@ -45,8 +45,6 @@
 
 static int findspeed ( int );
 
-unsigned char peekchar(), getone();
-
 #define SELDEFAULT      0xFF
 
 char inchars[] = "kab";                 /* InSource chars */

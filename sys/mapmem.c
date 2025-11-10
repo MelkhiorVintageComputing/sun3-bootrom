@@ -23,8 +23,7 @@
 #include "../sun3/structconst.h"
 
 #include "../h/protos.h"
-
-void setupmap ( struct pginit * );
+#include "mapmem.h"
 
 /*
  * Table of page map entries used to map on-board I/O and PROM pages.

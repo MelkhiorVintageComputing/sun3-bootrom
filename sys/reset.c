@@ -36,14 +36,13 @@
 
 #include "../h/protos.h"
 
+#include "../diag/diag.h"
+#include "reset.h"
+
 static void open_window ( int );
 static void close_window ( void );
 static void test_mem (const int, const int );
 static void banner_test ( void );
-
-int mod3write(unsigned int start_addr, unsigned int end_addr, unsigned int pattern);
-int mod3read(unsigned int start_addr, unsigned int end_addr, unsigned int pattern);
-int mod3read_tramp(unsigned int start_addr, unsigned int end_addr, unsigned int pattern);
 
 #ifdef NOTANSI
 int     trap(), bus_error(), addr_error();

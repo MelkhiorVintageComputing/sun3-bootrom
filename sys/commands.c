@@ -58,6 +58,9 @@
 #include "../h/protos.h"
 #include "../h/config.h"
 
+#include "commands.h"
+
+static int queryval ( int adr, int len, int space );
 static void openreg ( long *, long * );
 static void dobreak ( int );
 static void map_mainmem ( void );
@@ -82,7 +85,7 @@ int bootreset();        /* Call it (no return) to reset and boot */
  * hex digits) are arguments.  The result is 1 if the location was modified,
  * 2 if it was not, but a cr was typed, and 0 if anything else was typed.
  */
-int
+static int
 queryval ( int adr, int len, int space )
 {
         register unsigned char c;

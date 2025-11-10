@@ -1,3 +1,5 @@
+#ifndef __MONTRAP_H__
+#define __MONTRAP_H__
 
 /*	@(#)montrap.h 1.1 86/09/27 SMI	*/
 
@@ -11,6 +13,8 @@
  * The following little structure is built on the stack to describe
  * the state of the processor at the time of the trap.
  */
+
+#include "../h/buserr.h"
 
 struct monintstack {
 	long	mis_d0, mis_d1, mis_d2, mis_d3, mis_d4, mis_d5, mis_d6, mis_d7;
@@ -71,3 +75,5 @@ struct monintstack {
 #define	r_format	monintstack.mis_format
 #define	r_vector	monintstack.mis_vector
 #define	r_instr_addr	monintstack.mis_instr_addr
+
+#endif __MONTRAP_H__

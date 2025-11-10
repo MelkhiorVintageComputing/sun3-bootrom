@@ -21,7 +21,7 @@ typedef int (*vfptr) ( void );
 #include "../sun3/trap.h"
 
 /* in sys/mapmem.c */
-/* ?? */
+#include "../sys/mapmem.h"
 
 /* in sys/reset.c */
 /* ?? */
@@ -30,23 +30,19 @@ typedef int (*vfptr) ( void );
 #include "../sun3/cpu.map.h"
 
 /* in diag/diag.s */
-/* -- never called from C code */
-void selftest ( void );
-void diag_berr ( void );
+#include "../diag/diag.h"
 
 /* in sys/banner.c */
-void banner ( void );
-void help ( void );
+#include "../sys/banner.h"
 
 /* in sys/commands.c */
-void vector_default ( char *, char * );
+#include "../sys/commands.h"
 
 /* in sys/idprom.c */
 #include "../h/idprom.h"
 
 /* in sys/usecmd.c */
-void usecmd ( void );
-void reset_uart ( volatile unsigned char *, int );
+#include "../sys/usecmd.h"
 
 /* in sys/getline.c */
 void getline ( int );

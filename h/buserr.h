@@ -1,3 +1,5 @@
+#ifndef __BUSERR_H__
+#define __BUSERR_H__
 
 /*	@(#)buserr.h 1.1 86/09/27 SMI	*/
 
@@ -11,8 +13,6 @@
  * definitions for stacked structure showing details of Bus Error
  * or Address Error on M68010 or M68020.
  */
-
-#ifndef fvo_form
 
 /*
  * All the possible values of the Format/Vector Offset format nibble.
@@ -117,4 +117,4 @@ struct buserr_stack_20_extension {
 	unsigned short	be20_reg_30[22];
 } __attribute__ ((packed)) ;
 
-#endif fvo_form
+#endif __BUSERR_H__

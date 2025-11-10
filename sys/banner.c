@@ -19,6 +19,8 @@
 #include "../h/protos.h"
 #include "../h/config.h"
 
+#include "banner.h"
+
 static void display_border ( void );
 static void menu_string ( char *, int, char * );
 
