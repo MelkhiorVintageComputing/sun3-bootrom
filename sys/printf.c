@@ -4,13 +4,16 @@
  * Copyright (c) 1986 by Sun Microsystems, Inc.
  */
 
+// can't include printf.h, as ir declares printf() as a vararg... but we deal with it in a different way
+//#include "printf.h"
+
 // referenced in diag.s
 char chardigs[]="0123456789ABCDEF";
 
 // This would be a very different game ...
 // #include <stdarg.h>
 
-void putchar(unsigned char);
+#include "../sys/busyio.h"
 
 static void printn (unsigned long, int );
 

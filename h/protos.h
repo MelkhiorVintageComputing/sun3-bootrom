@@ -45,33 +45,22 @@ typedef int (*vfptr) ( void );
 #include "../sys/usecmd.h"
 
 /* in sys/getline.c */
-void getline ( int );
-unsigned char getone ( void );
-unsigned char peekchar ( void );
-int getnum ( void );
-void skipblanks ( void );
-int ishex ( unsigned char );
+#include "../sys/getline.h"
 
 /* in sys/printf.c */
 #include "../sys/printf.h"
 
 /* in sys/busyio.c */
-void putchar ( unsigned char );
-unsigned char getchar();
-int mayput ( unsigned char );
-int mayget ( );
+#include "../sys/busyio.h"
 
 /* in sys/keypress.c */
-int keypress ( unsigned char );
+#include "../sys/keypress.h"
 
 /* in sys/getkey.c */
-void initgetkey ( void );
-void abortfix ( void );
-int getkey ( void );
+#include "../sys/getkey.h"
 
 /* in sys/boot.c */
-int boot ( char * );
-int nullsys ( void * );
+#include "../sys/boot.h"
 
 /* in sys/monalloc.c */
 // char * resalloc ( enum RESOURCES type, unsigned bytes);

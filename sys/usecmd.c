@@ -43,6 +43,8 @@
 
 #include "../h/protos.h"
 
+#include "usecmd.h"
+
 static int findspeed ( int );
 
 #define SELDEFAULT      0xFF

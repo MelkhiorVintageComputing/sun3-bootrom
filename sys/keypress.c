@@ -17,11 +17,13 @@
 #include "../h/keyboard.h"
 #include "../h/asyncbuf.h"
 
+#include "../sys/getkey.h"
+
+#include "keypress.h"
+
 #define keybuf          gp->g_keybuf
 #define keystate        gp->g_keystate
 #define keybid          gp->g_keybid
-
-void abortfix ( void );
 
 /*
  * A keypress was received (from a parallel or serial keyboard).

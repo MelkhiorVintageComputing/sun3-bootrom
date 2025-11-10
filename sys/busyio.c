@@ -16,6 +16,8 @@
 #include "../h/protos.h"
 #include "../h/config.h"
 
+#include "busyio.h"
+
 static int remote_msg ( int ) ;
 
 #ifndef WANT_FB

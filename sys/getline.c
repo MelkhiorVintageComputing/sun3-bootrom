@@ -14,6 +14,8 @@
 
 #include "../h/protos.h"
 
+#include "getline.h"
+
 /*
  * read the next input line into a global buffer
  */
