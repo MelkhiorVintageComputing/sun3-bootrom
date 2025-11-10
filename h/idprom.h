@@ -1,4 +1,5 @@
-
+#ifndef __IDPROM_H__
+#define __IDPROM_H__
 /*	@(#)idprom.h 1.1 86/09/27 SMI	*/
 
 /*
@@ -37,3 +38,8 @@ struct idprom {
 #define	IDM_SUN3_M25	0x12	/* M25 CPU */
 #define	IDM_SUN3_SIRIUS 0x13	/* Sirius CPU */
 #define IDM_SUN3_PRISM  0x14    /* Prism CPU */
+
+void getidprom ( struct idprom *, int );
+int idprom ( unsigned char, struct idprom * );
+
+#endif __IDPROM_H__

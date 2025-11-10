@@ -1,3 +1,6 @@
+#ifndef __PROTOS_H__
+#define __PROTOS_H__
+
 /* protos.h
  *
  * Tom Trebisky  7-30-2025
@@ -15,31 +18,7 @@ typedef int (*vfptr) ( void );
 /* nada */
 
 /* in sun3/trap.s */
-vfptr set_evec ( int, vfptr );
-int trap ( void );
-int nmi ( void );
-int addr_error ( void );
-int bus_error ( void );
-
-void exit_to_mon ( void );
-
-void set_leds ( int );
-void set_enable ( int );
-int get_enable ( void );
-
-void menureset ( void );
-void bootreset ( void );
-void k2reset ( void );
-void softreset ( void );
-
-int sendtokbd ( int );
-int peek ( int );
-int pokec ( int, int );
-void resetinstr ( void );
-
-int setbus ( void * );
-void unsetbus ( void * );
-void getidprom ( int, int );
+#include "../sun3/trap.h"
 
 /* in sys/mapmem.c */
 /* ?? */
@@ -48,17 +27,7 @@ void getidprom ( int, int );
 /* ?? */
 
 /* in sun3/cpu.map.s */
-int /*struct pgmapent*/ getpgmap ( char * );
-void                    setpgmap( char *, int );
-
-segnum_t	getsegmap ( char * );
-void        setsegmap ( char *, int );
-
-int getcontext ( void );		// never used
-void setcontext ( int );
-
-void setcxsegmap ( int, char *, int);
-void setcxsegmap_noint ( int, char *, int);
+#include "../sun3/cpu.map.h"
 
 /* in diag/diag.s */
 /* -- never called from C code */
@@ -73,8 +42,7 @@ void help ( void );
 void vector_default ( char *, char * );
 
 /* in sys/idprom.c */
-// int idprom ( unsigned char, struct idprom * );
-int idprom ( unsigned char, void * );
+#include "../h/idprom.h"
 
 /* in sys/usecmd.c */
 void usecmd ( void );
@@ -89,12 +57,13 @@ void skipblanks ( void );
 int ishex ( unsigned char );
 
 /* in sys/printf.c */
-void printf ( char *, ...);
-void printhex ( int, int );
+#include "../sys/printf.h"
 
 /* in sys/busyio.c */
 void putchar ( unsigned char );
+unsigned char getchar();
 int mayput ( unsigned char );
+int mayget ( );
 
 /* in sys/keypress.c */
 int keypress ( unsigned char );
@@ -116,10 +85,7 @@ char * devalloc ( int, char *, unsigned int );
 void reset_alloc ( void );
 
 /* in sys/common.c */
-void bzero ( char *, int );
-void bcopy ( char *, char *, int );
-int chklabel ( void * );
-int isspinning ( int (*isready)(char *, int), char *, int );
+#include "../sys/common.h"
 
 /* in sun3/blts.s */
 void bltshort ( int a0, int a1, int a2 );
@@ -147,6 +113,7 @@ void sc_error ( char * );
 // int scdoit ( struct scsi_cdb *cdb, struct scsi_scb *scb, struct saioreq *sip );
 
 /* in sys/xxboot.c */
+#include "../dev/saio.h"
 int xxboot ( struct bootparam * );
 int ttboot ( struct bootparam * );
 int devopen ( struct saioreq * );
@@ -199,3 +166,4 @@ void prom_mem_batchrop ( struct pr_prpos, int, struct pr_prpos *, int );
 
 
 /* THE END */
+#endif __PROTOS_H__

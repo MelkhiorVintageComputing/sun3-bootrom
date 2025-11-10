@@ -1,9 +1,13 @@
+#ifndef __TFTP_H__
+#define __TFTP_H__
 
 /*	@(#)tftp.h 1.1 86/09/27 SMI	*/
 
 /*
  * Copyright (c) 1986 by Sun Microsystems, Inc.
  */
+
+#include "../dev/saio.h"
 
 /*
  * Trivial File Transfer Protocol (IEN-133)
@@ -45,3 +49,9 @@ struct	tftphdr {
 #define	EBADID		5		/* unknown transfer ID */
 #define	EEXISTS		6		/* file already exists */
 #define	ENOUSER		7		/* no such user */
+
+int etheropen ( struct saioreq *sip );
+int etherstrategy ( struct saioreq *sip, int rw );
+int tftpload ( struct saioreq *sip );
+
+#endif

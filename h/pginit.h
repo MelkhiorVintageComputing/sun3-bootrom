@@ -1,4 +1,5 @@
-
+#ifndef __PGINIT_H__
+#define __PGINIT_H__
 /*	@(#)pginit.h 1.1 86/09/27 SMI	*/
 
 /*
@@ -17,3 +18,4 @@ struct pginit {
 #define PGINITEND	0x8000		/* incr value to end table */
 #define PGINITSKIP	0x8001		/* incr value to skip to next entry */
 
+#endif __PGINIT_H__
