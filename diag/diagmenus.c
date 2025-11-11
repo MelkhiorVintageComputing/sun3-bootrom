@@ -620,18 +620,8 @@ amd_ether_test( void )
  * test routine.
  */
                 /* First, setup segment map addresses for 16 pages, 1 entry */
-#ifdef FPGA
-		printf("Setting up some memory for AMDLE\n * first setsmreg()\n");
-#endif FPGA
- 
                 setsmreg(0x0f080000, 0xc0);     /* 16 pages */
-#ifdef FPGA
-		printf(" * second map()\n");
-#endif FPGA
                 map(0xf080000, 16*PAGESIZE, ETHERMEM, PM_MEM); /*map 16 pages*/
-#ifdef FPGA
-		printf("Calling test\n");
-#endif FPGA
 
                 vadrs = (u_long)(ETHERMEM + 0xF000000);
                 if (cmd == 'L')                 /* local loopback */
@@ -734,18 +724,19 @@ amd_wr_rd_test(u_short wdata)
 static int
 amd_ether_loop(u_short mode, u_long vadrs)
 {
-        u_short *radrs, *rdata, found, exp, randomseed, loops;
+        volatile u_short *radrs, *rdata;
+	u_short found, exp, randomseed, loops;
         int all, timeleft, x;
         char error, timeout; 
-        char *amd_rx_data;
-        char *amd_tx_data;
-        struct amd_init *amd_init_block;
-        struct amd_rcv_ring *amd_rx_block;
-        struct amd_txmt_ring *amd_tx_block;
+        volatile char *amd_rx_data;
+        volatile char *amd_tx_data;
+        volatile struct amd_init *amd_init_block;
+        volatile struct amd_rcv_ring *amd_rx_block;
+        volatile struct amd_txmt_ring *amd_tx_block;
 
 
-        radrs = (u_short *)AMD_ETHER_BASE+AMD_E_RAP;
-        rdata = (u_short *)AMD_ETHER_BASE+AMD_E_RDP; 
+        radrs = (volatile u_short *)AMD_ETHER_BASE+AMD_E_RAP;
+        rdata = (volatile u_short *)AMD_ETHER_BASE+AMD_E_RDP; 
         amd_init_block = (struct amd_init *)vadrs;
         amd_rx_block = (struct amd_rcv_ring *)(vadrs+0x20); 
         amd_tx_block = (struct amd_txmt_ring *)(vadrs+0x030);
@@ -790,7 +781,9 @@ amd_ether_loop(u_short mode, u_long vadrs)
  * STOP chip in prep to init                     *
  */
 
+	asm volatile("": : :"memory");
         *radrs = AMD_E_CSR0; /* select CSR0 */
+	asm volatile("": : :"memory");
         *rdata = AMD_E_STOP;       
         if (*rdata != AMD_E_STOP)
                 error = TRUE;
@@ -799,22 +792,28 @@ amd_ether_loop(u_short mode, u_long vadrs)
  * LOAD CSR1,2 with the base of the init structure *
  */
 
+	asm volatile("": : :"memory");
         *radrs = AMD_E_CSR1; /* select CSR1 */
 
         /* contents of pointer to init structure */
 
+	asm volatile("": : :"memory");
         *rdata = (u_short)((u_long)amd_init_block & 0xFFFE);
  
+	asm volatile("": : :"memory");
         *radrs = AMD_E_CSR2; /* select CSR2 */
 
         /* contents of pointer to init structure */
         
+	asm volatile("": : :"memory");
         *rdata = (u_short)(((u_long)amd_init_block >> 16) & 0xFF);
 
+	asm volatile("": : :"memory");
         *radrs = AMD_E_CSR3; /* select CSR3 */
         
         /* byte swap, ALE, byte control bits */
       
+	asm volatile("": : :"memory");
         *rdata = (u_short) 0;
 
 
@@ -823,20 +822,28 @@ amd_ether_loop(u_short mode, u_long vadrs)
  * INIT chip                                     *
  */
 
+	asm volatile("": : :"memory");
         *radrs = AMD_E_CSR0; /* select CSR0 */
+	asm volatile("": : :"memory");
         *rdata = AMD_E_INIT;       
         timeleft = MAXTIME_AMD;
 
+	asm volatile("": : :"memory");
         while ( (timeleft--) && ((found = *rdata) & AMD_E_INITOK) != AMD_E_INITOK)
         {} /* wait for correct action or timeout */
         
-        if (!timeleft) {
+        if (timeleft <= 0) {
                 error = TRUE; /* failed to init correctly */
                 if (gp->g_option != 'N') {
                         printf("Initialization failure, CSR0 exp %x, obs %x\n",
                                 found & AMD_E_INITOK, found);
                 }
         }
+#ifdef FPGA
+	else {
+		printf("AMDLE: Initialization suceeded (%d out of %d left)\n", timeleft, MAXTIME_AMD);
+	}
+#endif
 
 /*
  * LOAD buffer for TXMIT and CLEAR RX buffer
@@ -870,7 +877,9 @@ amd_ether_loop(u_short mode, u_long vadrs)
  * START chip     
  */
 
+		asm volatile("": : :"memory");
                 *radrs = AMD_E_CSR0; /* select CSR0 */
+		asm volatile("": : :"memory");
                 *rdata = AMD_E_START; /* if we are already started this has no effect */
                 if ((*rdata & AMD_E_START) != AMD_E_START)
                         error = TRUE;

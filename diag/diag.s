@@ -805,8 +805,6 @@ Test_05:
 |       A5972C5A        5AA5972C        2C5AA597
 |       5AA5972C        2C5AA597        A5972C5A
 |       2C5AA597        972C5AA5        5AA5972C
-
-#if !defined(FPGA_FAST)
 Test_06:
         movb    #~6,d7                  | test #
         lea     Test_06_txt,a4          | test descriptor text
@@ -821,6 +819,8 @@ Test_06:
         subl    #SEGINCR,a5             | next Segment Map address
         dbra    d6,8b   
 10:
+#if !defined(FPGA_FAST)
+| need to keep the init code for later	
         movl    #Test_patt,d2
 11:
         lea     12f,a6                  | save PC return
@@ -890,7 +890,8 @@ setup_traps:
 #if !defined(FPGA_FAST)
         movw    #0xFFF,d5
 #else
-	movw    #0x00F,d5
+//beware: if we don't map enough here, the sizing code will not work	
+	movw    #0xFFF,d5
 #endif	
         movl    #PME_MEMORY_0,d0           | First page map entry
         lea     PAGEOFF,a5              | initialize at to pt to lowest page
@@ -944,7 +945,7 @@ setup_traps:
         movl    #SCRATCH_SRAM_BASE,d0   | used to configure the DDR3
         movsl   a0,a5@(0,d0:L)
 #endif FPGA_WISHBONE
-#ifdef FPGA_TEST_ETHER
+#if 0 && defined(FPGA_TEST_ETHER)
 test_ether:
 	// setup MMU
         lea     AMDLE_PAGE,a0
@@ -1103,7 +1104,11 @@ Test_07:
         lea     6f,a6                   | save PC return
         jra     test$
 6:
-        lea     0x400,a5                | starting memory address 
+#if !defined(FPGA_FAST)
+        lea     0x400,a5                | starting memory address
+#else
+        lea     0xFE0,a5                | starting memory address
+#endif
         moveq   #1,d1                   | initialize write pattern
 10:
         lea     20f,a6                  | save pc return
@@ -1159,7 +1164,7 @@ Test_08:
         movl    #0xC0000F80,d0          | set rd valid,write allowed for page 1
 #elif defined(FPGA)
 	// let's be reasonable and limit ourselves to 128 MiB for now
-	// the memory sizing code will blow up long before that in its current version
+	// the memory sizing code will blow up long before that in its original version
 	// SIRIUS uses a different algorithm (it counts installed 8 MiB ECC boards...)
         movl    #0xC0004000,d0          | set rd valid,write allowed for page 1
 #else
@@ -2494,7 +2499,7 @@ esckey:
         subl    a5,a5                   | start a address 0
 #else
 	movl    d1,a5
-	subl    #0x00010000,a5          | only test a small amount (64 KiB), we know we only have 2 MiB for now
+	subl    #0x00000400,a5          | only test a small amount (1 KiB), we know we only have 2 MiB for now
 #endif FPGA_FAST
         movl    #0xFFFFFFFF,d0          |
 50:

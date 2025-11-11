@@ -150,7 +150,11 @@ mapmem( unsigned long memsize )
          * for the color frame buffer.
          *
          */
+#if !defined(FPGA_FAST)
         for (con = 0; con < NUMCONTEXTS; con++) {
+#else
+        for (con = 0; con < 1; con++) {
+#endif
                 setcxsegmap_noint(con, (char *)0, 0);
                 setcontext(con);
                 i = 0;
