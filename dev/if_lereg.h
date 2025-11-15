@@ -43,8 +43,8 @@ struct le_device {
 
 // tjt - the 7990 really does have 16 bit registers.
 struct le_device {
-        volatile vu_16	 le_rdp;            /* Register Data Port */
-        volatile vu_16 	 le_rap;            /* Register Address Port */
+	vu_16	 le_rdp;            /* Register Data Port */
+	vu_16 	 le_rap;            /* Register Address Port */
 };
 
 #define le_csr le_rdp
@@ -101,10 +101,14 @@ struct le_device {
 
 /* The address contained in this structure must be longword aligned */
 struct le_drp {                 /* Descriptor Ring Pointer */
-        u_short drp_laddr;      /* Low 16 bits of ring address */
-        u_char  drp_len : 3;    /* Binary exponent of no. of ring entries */
-        u_char          : 5;    /* Reserved */
-        u_char  drp_haddr;      /* High 16 bits of ring address */
+        vu_16 drp_laddr;      /* Low 16 bits of ring address */
+#if 0
+        vu_8  drp_len : 3;    /* Binary exponent of no. of ring entries */
+        vu_8          : 5;    /* Reserved */
+#else
+        vu_8  drp_len;    /* Binary exponent of no. of ring entries */
+#endif
+        vu_8  drp_haddr;      /* High 16 bits of ring address */
 };
 
 /*
@@ -113,36 +117,41 @@ struct le_drp {                 /* Descriptor Ring Pointer */
  * The chip then fetches it's initialization info from the structure.
  */
 struct le_init_block {
+#if 0
         /* In the normal mode, these 16 bits are all 0 */
-        u_short ib_prom : 1;    /* Promiscuous Mode */
-        u_short                 : 7;    /* Reserved */
-        u_short ib_intl : 1;    /* Internal Loopback */
-        u_short ib_drty : 1;    /* Disable Retry */
-        u_short ib_coll : 1;    /* Force Collision */
-        u_short ib_dtcr : 1;    /* Disable Transmit CRC */
-        u_short ib_loop : 1;    /* Loopback */
-        u_short ib_dtx  : 1;    /* Disable Transmitter */
-        u_short ib_drx  : 1;    /* Disable Receiver */
+        vu_16 ib_prom : 1;    /* Promiscuous Mode */
+        vu_16                 : 7;    /* Reserved */
+	/* why is EMBA missing in the original code ?*/
+        vu_16 ib_intl : 1;    /* Internal Loopback */
+        vu_16 ib_drty : 1;    /* Disable Retry */
+        vu_16 ib_coll : 1;    /* Force Collision */
+        vu_16 ib_dtcr : 1;    /* Disable Transmit CRC */
+        vu_16 ib_loop : 1;    /* Loopback */
+        vu_16 ib_dtx  : 1;    /* Disable Transmitter */
+        vu_16 ib_drx  : 1;    /* Disable Receiver */
+#else
+	vu_16 mode;
+#endif
 
         /*
          * The bytes must be swapped within the word, so that, for example,
          * the address 8:0:20:1:25:5a is written in the order
          *             0 8 1 20 5a 25
          */
-        u_char  ib_padr[6];
+        vu_8  ib_padr[6];
 
-        u_char  ib_ladrf[8];
+        vu_8  ib_ladrf[8];
 
         struct  le_drp ib_rdrp; /* Receive Descriptor Ring Pointer */
         struct  le_drp ib_tdrp; /* Transmit Descriptor Ring Pointer */
 };
 
 struct  le_md {                 /* Message Descriptor */
-        u_short lmd_ladr;       /* Low Order 16 Address Bits */
-        u_char  lmd_flags;
-        u_char  lmd_hadr: 8;    /* High Order 8 Address Bits */
-        u_short lmd_bcnt;       /* Buffer Byte Count (maximum length) */
-        u_short lmd_mcnt;       /* Message Byte Count (actual length) */
+        vu_16 lmd_ladr;       /* Low Order 16 Address Bits */
+        vu_8  lmd_flags;
+        vu_8  lmd_hadr: 8;    /* High Order 8 Address Bits */
+        vu_16 lmd_bcnt;       /* Buffer Byte Count (maximum length) */
+        vu_16 lmd_mcnt;       /* Message Byte Count (actual length) */
 };
 
 #define lmd_flags3 lmd_mcnt     /* for Transmit message descriptor */

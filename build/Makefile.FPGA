@@ -22,7 +22,7 @@ IDENT='-DID="Rev 2.1F"' -DSUN3 -DCARRERA -DFPGA -DFPGA_WISHBONE -DFPGA_FB # -DWA
 # -O2 works but is quite close to 64 KiB
 # -O1 works and has some margin (~54 KiB)
 
-COPTS= -Os -Wno-endif-labels -Wno-implicit-function-declaration #-Wno-multichar
+COPTS= -Os -Wno-endif-labels -Wno-multichar -Werror #-Wno-implicit-function-declaration
 # CFLAGS = -I../h -I. ${COPTS} ${IDENT} -DMC68000
 #CFLAGS = -I../h ${COPTS} ${IDENT} -DMC68000
 CFLAGS = -I../h ${COPTS} ${IDENT} -DANSI

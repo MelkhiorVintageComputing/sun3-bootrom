@@ -1,9 +1,12 @@
-
+#ifndef __AMD_ETHER_H__
+#define __AMD_ETHER_H__
 /*      @(#)amd_ether.h 1.1 86/09/27 SMI        */
 
 /*
  * Copyright (c) 1986 by Sun Microsystems, Inc.
  */
+
+#include "../h/systypes.h"
 
 /*
  * amd_ether.h: Defines for the AM7990 Ethernet chip.
@@ -48,39 +51,40 @@
  */
 struct amd_init         /* AMD Initilization block */
 {
-        u_short mode;           /* Mode control                         */
-        u_short padr_lo;        /* Lo 16 bits of physical address       */
-        u_short padr_mid;       /* Mid 16 bits                          */
-        u_short padr_hi;        /* Hi 16 bits                           */
-        u_short ladr_lo;        /* Lo 16 bits of logical  address       */
-        u_short ladr_mid_lo;    /* Mid_lo 16 bits                       */
-        u_short ladr_mid_hi;    /* Mid_hi 16 bits                       */
-        u_short ladr_hi;        /* Hi 16 bits                           */
-        u_short rdra_lo;        /* Lo 16 bits of pointer to discriptor  */
+        vu_16 mode;           /* Mode control                         */
+        vu_16 padr_lo;        /* Lo 16 bits of physical address       */
+        vu_16 padr_mid;       /* Mid 16 bits                          */
+        vu_16 padr_hi;        /* Hi 16 bits                           */
+        vu_16 ladr_lo;        /* Lo 16 bits of logical  address       */
+        vu_16 ladr_mid_lo;    /* Mid_lo 16 bits                       */
+        vu_16 ladr_mid_hi;    /* Mid_hi 16 bits                       */
+        vu_16 ladr_hi;        /* Hi 16 bits                           */
+        vu_16 rdra_lo;        /* Lo 16 bits of pointer to discriptor  */
                                 /* rings for receive                    */
-        u_short rdra_hi;        /* Hi 8 bits of pointer to discriptor   */
+        vu_16 rdra_hi;        /* Hi 8 bits of pointer to discriptor   */
                                 /* rings for receive & rcv ring length  */
-        u_short tdra_lo;        /* Lo 16 bits of pointer to discriptor  */
+        vu_16 tdra_lo;        /* Lo 16 bits of pointer to discriptor  */
                                 /* rings for txmit                      */
-        u_short tdra_hi;         /* Hi 8 bits of pointer to discriptor   */
+        vu_16 tdra_hi;         /* Hi 8 bits of pointer to discriptor   */
                                 /* rings for txmit & rcv ring length    */
 };
 
 struct amd_rcv_ring
 {
-        u_short rmd0_ladr;      /* lo address of data buffer pointed to */
-        u_short rmd1_hadr;      /* Hi 8 bits of buffer & info bits      */
-        u_short rmd2_bcnt;      /* size of data buffer                  */
-        u_short rmd3_mcnt;      /* size of message in this buffer       */
+        vu_16 rmd0_ladr;      /* lo address of data buffer pointed to */
+        vu_16 rmd1_hadr;      /* Hi 8 bits of buffer & info bits      */
+        vu_16 rmd2_bcnt;      /* size of data buffer                  */
+        vu_16 rmd3_mcnt;      /* size of message in this buffer       */
 };
 
 struct amd_txmt_ring
 {
-        u_short tmd0_ladr;      /* lo address of data buffer pointed to */
-        u_short tmd1_hadr;      /* Hi 8 bits of buffer & info bits      */
-        u_short tmd2_bcnt;      /* size of data buffer                  */
-        u_short tmd3_tdr;       /* size of message in this buffer       */
+        vu_16 tmd0_ladr;      /* lo address of data buffer pointed to */
+        vu_16 tmd1_hadr;      /* Hi 8 bits of buffer & info bits      */
+        vu_16 tmd2_bcnt;      /* size of data buffer                  */
+        vu_16 tmd3_tdr;       /* size of message in this buffer       */
 };
 
 /* THE END */
 
+#endif  __AMD_ETHER_H__

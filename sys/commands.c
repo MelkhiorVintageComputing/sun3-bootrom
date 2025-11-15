@@ -60,6 +60,10 @@
 
 #include "commands.h"
 
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+void amdle_test(void);
+#endif
+
 static int queryval ( int adr, int len, int space );
 static void openreg ( long *, long * );
 static void dobreak ( int );
@@ -271,6 +275,14 @@ monitor ( struct monintstack monintstack )
                 space = FC_SD;          /* supervisor data: FC 5 */
         else
                 space = FC_UD;          /* user data: FC 1 */
+
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~L_RUNNING);   /* Set LED's to normal state */
+	map_mainmem();  /* map in main memory (i.e., set up the page
+			 * map for main menu).
+			 */
+	amdle_test();
+#endif
 
         if (gp->g_keybid == 3 && r_vector == EVEC_RESET) {
                 if (EEPROM->ee_diag.eed_keyclick == EED_KEYCLICK)

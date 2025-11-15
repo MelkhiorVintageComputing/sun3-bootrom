@@ -62,9 +62,9 @@ struct lance_softc {
         u_char                  fill[6];
         struct le_md            es_rmd[2];      /* Receive Descriptor Ring */
         struct le_md            es_tmd;         /* Transmit Descriptor Ring */
-        u_char                  es_rbuf[2][LANCERBUFSIZ]; /* Receive Buffers */
+        vu_8                    es_rbuf[2][LANCERBUFSIZ]; /* Receive Buffers */
 #ifndef PROM
-        u_char                  es_tbuf[LANCETBUFSIZ];  /* Transmit Buffer */
+        vu_8                    es_tbuf[LANCETBUFSIZ];  /* Transmit Buffer */
 #endif  PROM
         int                     es_next_rmd;    /* Next descriptor in ring */
 };
@@ -78,7 +78,7 @@ static int lanceinit ( struct saioreq * );
 static int lanceprobe ( struct saioreq * );
 static int lanceopen ( struct saioreq * );
 static void lanceclose ( struct saioreq * );
-static void install_buf_in_rmd ( u_char *, struct le_md *);
+static void install_buf_in_rmd ( vu_8 *, struct le_md *);
 
 static int lancexmit ( struct lance_softc *, char *, int );
 static int lancepoll ( struct lance_softc *, char * );
@@ -145,20 +145,20 @@ lanceopen ( struct saioreq *sip )
 {
         register int result;
 
-#ifdef DEBUG1
+#if defined(DEBUG1)
         printf("le: lanceopen[\n");
 #endif DEBUG1
 
         sip->si_sif = &leif;
         if ( lanceinit(sip) || (result = etheropen(sip)) < 0 ) {
                 lanceclose(sip);                /* Make sure we kill chip */
-#ifdef DEBUG1
+#if defined(DEBUG1)
                 printf("le: lanceopen --> -1\n");
 #endif DEBUG1
                 return (-1);
         }
 
-#ifdef DEBUG1
+#if defined(DEBUG1)
         printf("le: lanceopen --> %x\n", result);
 #endif DEBUG1
         return (result);
@@ -200,12 +200,12 @@ lanceinit ( struct saioreq *sip )
 static int
 lancereset ( struct lance_softc *es, struct saioreq *sip )
 {
-        register volatile struct le_device *le = es->es_lance;
-        register volatile struct le_init_block *ib = &es->es_ib;
+        register struct le_device *le = es->es_lance;
+        register struct le_init_block *ib = &es->es_ib;
         int timeout = TIMEBOMB;
         int i;
 
-#ifdef DEBUG1
+#if defined(DEBUG1)
         printf("le: lancereset(%x, %x)\n", es, sip);
 #endif DEBUG1
 
@@ -214,6 +214,7 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
         le->le_rap = LE_CSR0;
 	asm volatile("": : :"memory");
         le->le_csr = LE_STOP;
+	asm volatile("": : :"memory");
 
         /* Perform the basic initialization */
         
@@ -267,6 +268,7 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
 	asm volatile("": : :"memory");
         le->le_csr = LE_INIT;
 
+	asm volatile("": : :"memory");
         while( ! (le->le_csr & LE_IDON) ) {
                 if (timeout-- <= 0) {
                     printf("le: cannot initialize\n");
@@ -287,14 +289,14 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
         le->le_csr = LE_STRT;
 	asm volatile("": : :"memory");
 
-#ifdef DEBUG1
+#if defined(DEBUG1)
         printf("le: lancereset returns OK\n");
 #endif DEBUG1
         return 0;               /* It all worked! */
 }
 
 static void
-install_buf_in_rmd ( u_char *buffer, struct le_md *rmd )
+install_buf_in_rmd ( vu_8 *buffer, struct le_md *rmd )
 {
         rmd->lmd_ladr = ((u_32) buffer) & 0xffff;
         rmd->lmd_hadr = (u_32) buffer >> 16;
@@ -316,7 +318,7 @@ lancexmit ( struct lance_softc *es, char *buf, int count )
         int timeout = TIMEBOMB;
 		u_32 addr;	// tjt
 
-#ifdef DEBUG2
+#if defined(DEBUG2)
         printf( "xmit np_blkno %x\n",
                 ((struct ndpack *)(buf+14))->np_blkno);
 #endif DEBUG2
@@ -363,6 +365,7 @@ lancexmit ( struct lance_softc *es, char *buf, int count )
         
 	asm volatile("": : :"memory");
         le->le_csr = LE_TDMD;
+	asm volatile("": : :"memory");
 
         do {
             if ( le->le_csr & LE_TINT ) {
@@ -389,7 +392,7 @@ lancexmit ( struct lance_softc *es, char *buf, int count )
         if ( (tmd->lmd_flags & LMD_ERR)
         ||   (tmd->lmd_flags3 & TMD_BUFF)
         ||   (timeout <= 0) ) {
-#ifdef DEBUG
+#if defined(DEBUG)
                 printf("le: xmit failed - tmd1 flags %x tmd3 %x csr0 %x\n",
                         tmd->lmd_flags, tmd->lmd_flags3, le->le_csr);
 #endif DEBUG
@@ -407,13 +410,13 @@ lancepoll ( struct lance_softc *es, char *buf )
         register struct ether_header *header;
         int length;
 
-#ifdef DEBUG1
+#if defined(DEBUG1) && 0
         printf("le: poll\n");
 #endif DEBUG1
         if ( ! (le->le_csr & LE_RINT)  )
                 return (0);             /* No packet yet */
 
-#ifdef DEBUG1
+#if defined(DEBUG1)
         printf("le: received packet\n");
 #endif DEBUG1
 
@@ -424,7 +427,7 @@ lancepoll ( struct lance_softc *es, char *buf )
         rmd = &es->es_rmd[es->es_next_rmd];
 
         if ( (rmd->lmd_flags & ~RMD_OFLO) != (LMD_STP|LMD_ENP) ) {
-#ifdef DEBUG
+#if defined(DEBUG)
                 printf("Receive packet error - rmd flags %x\n",rmd->lmd_flags);
 #endif DEBUG
                 length = 0;
@@ -459,7 +462,7 @@ lancepoll ( struct lance_softc *es, char *buf )
         }
 #endif LANCEBUG
 
-#ifdef DEBUG2
+#if defined(DEBUG2)
         if( header->ether_dhost.ether_addr_octet[0] == 0xff )
                 printf("Broadcast packet\n");
         else    printf("recv np_blkno %x\n",

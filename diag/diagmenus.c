@@ -590,6 +590,15 @@ loopback ( struct ereg *eregp, struct etherblock *blockp, int blocksize )
  * AMD Ethernet Tests
  */
 
+#if defined(FPGA_TEST_ETHER)
+void amdle_test(void) {
+	setsmreg(0x0f080000, 0xc0);     /* 16 pages */
+	map(0xf080000, 16*PAGESIZE, ETHERMEM, PM_MEM); /*map 16 pages*/
+	u_long vadrs = (u_long)(ETHERMEM + 0xF000000);
+	amd_ether_loop(1 ,vadrs);
+}
+#endif
+
 int
 amd_ether_test( void )
 {
@@ -728,25 +737,29 @@ amd_ether_loop(u_short mode, u_long vadrs)
 	u_short found, exp, randomseed, loops;
         int all, timeleft, x;
         char error, timeout; 
-        volatile char *amd_rx_data;
-        volatile char *amd_tx_data;
-        volatile struct amd_init *amd_init_block;
-        volatile struct amd_rcv_ring *amd_rx_block;
-        volatile struct amd_txmt_ring *amd_tx_block;
-
+        volatile char *amd_rx_data; // 0x0F080200
+        volatile char *amd_tx_data; // 0x0F080100
+	struct amd_init *amd_init_block; // 0x0F080000
+	struct amd_rcv_ring *amd_rx_block;  // 0x0F080020
+	struct amd_txmt_ring *amd_tx_block; // 0x0F080030
+	
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x50);
+#endif
 
         radrs = (volatile u_short *)AMD_ETHER_BASE+AMD_E_RAP;
         rdata = (volatile u_short *)AMD_ETHER_BASE+AMD_E_RDP; 
         amd_init_block = (struct amd_init *)vadrs;
         amd_rx_block = (struct amd_rcv_ring *)(vadrs+0x20); 
         amd_tx_block = (struct amd_txmt_ring *)(vadrs+0x030);
-        amd_tx_data = (char *)(vadrs+0x100);
-        amd_rx_data = (char *)(vadrs+0x200);
+        amd_tx_data = (volatile char *)(vadrs+0x100);
+        amd_rx_data = (volatile char *)(vadrs+0x200);
 
         if (mode == 2)                   /* external loopback */
                 amd_init_block->mode =  AMD_E_LOOPBACK;
         else                                     /* default internal loopback */
                 amd_init_block->mode =  AMD_E_INTL | AMD_E_LOOPBACK;
+
         amd_init_block->padr_lo = 0x200;
         amd_init_block->padr_mid = 0x0;
         amd_init_block->padr_hi = 0x0;
@@ -754,6 +767,7 @@ amd_ether_loop(u_short mode, u_long vadrs)
         amd_init_block->ladr_mid_lo = 0x0;
         amd_init_block->ladr_mid_hi = 0x0;
         amd_init_block->ladr_hi = 0x0;
+
         amd_init_block->rdra_lo = (u_short)((u_long)amd_rx_block & 0xFFFF);
         amd_init_block->rdra_hi = (u_short)(((u_long)amd_rx_block >> 16) & 0xFF);
         amd_init_block->tdra_lo = (u_short)((u_long)amd_tx_block & 0xFFFF);
@@ -766,9 +780,9 @@ amd_ether_loop(u_short mode, u_long vadrs)
         /* recomended msg size for loopback*/
         /* The F000 is required by amd in hi bits */
 
-        amd_tx_block->tmd0_ladr = (u_short)((u_long)amd_tx_data & 0xFFFF);
-        amd_tx_block->tmd1_hadr = (u_short)(((u_long)amd_tx_data >> 16) & 0xFF);
-        amd_tx_block->tmd2_bcnt = (u_short)0-32; 
+        amd_tx_block->tmd0_ladr = (u_short)((u_long)amd_tx_data & 0xFFFF); // 0x0100
+        amd_tx_block->tmd1_hadr = (u_short)(((u_long)amd_tx_data >> 16) & 0xFF); // 0x08
+        amd_tx_block->tmd2_bcnt = (u_short)0-32; // 0xFFE0
 
         /* recomended msg size for loopback*/
         /* The subtraction generates the necessary */
@@ -781,12 +795,20 @@ amd_ether_loop(u_short mode, u_long vadrs)
  * STOP chip in prep to init                     *
  */
 
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x51);
+#endif
+
 	asm volatile("": : :"memory");
         *radrs = AMD_E_CSR0; /* select CSR0 */
 	asm volatile("": : :"memory");
         *rdata = AMD_E_STOP;       
         if (*rdata != AMD_E_STOP)
                 error = TRUE;
+
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x52);
+#endif
 
 /*
  * LOAD CSR1,2 with the base of the init structure *
@@ -800,6 +822,10 @@ amd_ether_loop(u_short mode, u_long vadrs)
 	asm volatile("": : :"memory");
         *rdata = (u_short)((u_long)amd_init_block & 0xFFFE);
  
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x53);
+#endif
+
 	asm volatile("": : :"memory");
         *radrs = AMD_E_CSR2; /* select CSR2 */
 
@@ -807,6 +833,10 @@ amd_ether_loop(u_short mode, u_long vadrs)
         
 	asm volatile("": : :"memory");
         *rdata = (u_short)(((u_long)amd_init_block >> 16) & 0xFF);
+
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x54);
+#endif
 
 	asm volatile("": : :"memory");
         *radrs = AMD_E_CSR3; /* select CSR3 */
@@ -816,7 +846,9 @@ amd_ether_loop(u_short mode, u_long vadrs)
 	asm volatile("": : :"memory");
         *rdata = (u_short) 0;
 
-
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x55);
+#endif
 
 /*
  * INIT chip                                     *
@@ -827,6 +859,10 @@ amd_ether_loop(u_short mode, u_long vadrs)
 	asm volatile("": : :"memory");
         *rdata = AMD_E_INIT;       
         timeleft = MAXTIME_AMD;
+
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x56);
+#endif
 
 	asm volatile("": : :"memory");
         while ( (timeleft--) && ((found = *rdata) & AMD_E_INITOK) != AMD_E_INITOK)
@@ -845,11 +881,20 @@ amd_ether_loop(u_short mode, u_long vadrs)
 	}
 #endif
 
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x57);
+#endif
+
 /*
  * LOAD buffer for TXMIT and CLEAR RX buffer
  */
         loops = 1;
         while ((mayget() == -1) && (loops--) && (!error)) {
+
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x58);
+#endif
+	
                 timeout = FALSE;
                 for (x = 0; x < 32; ++x) {
                         *(amd_tx_data + x) = x; /* setup write data */
@@ -872,6 +917,10 @@ amd_ether_loop(u_short mode, u_long vadrs)
   
 
 
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x59);
+#endif
+
 
 /*
  * START chip     
@@ -887,6 +936,10 @@ amd_ether_loop(u_short mode, u_long vadrs)
 /*
  * Transmit buffer & VERIFY transmittion ok      *
  */
+
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x5A);
+#endif
 
                 amd_tx_block->tmd1_hadr = amd_tx_block->tmd1_hadr | 
                         (u_short)AMD_E_STP |    /* Start of Packet mark */
@@ -908,6 +961,10 @@ amd_ether_loop(u_short mode, u_long vadrs)
                 /* We will want to add tests for other signs that a receive */
                 /* was accomplished */
 
+
+#if defined(FPGA) && defined(FPGA_TEST_ETHER)
+	set_leds(~0x5B);
+#endif
                 
                 if (!timeleft) {
                         error = TRUE; /* failed to confirm tx in time */
