@@ -18,8 +18,43 @@
 /* #define DEBUG1 */
 /* #define DEBUG        1 */
 
+#define DEBUG
+#define DEBUG1
+
 #define LANCEBUG 1      /* Rev C Lance chip bug */
 #define PROTOSCRATCH 8192
+
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+
+#include "../sun3/cpu.addrs.h"
+
+#ifndef CSR_BASE
+#error "error, no CSR_BASE"
+#endif
+
+#if defined(WB_LITTLE_ENDIAN)
+#define __optional_bswap32(x) __builtin_bswap32(x)
+#else
+#define __optional_bswap32(x) (x)
+#endif
+
+#define uint8_t unsigned char
+#define uint16_t unsigned short
+#define uint32_t unsigned int
+#define uint64_t unsigned long long
+
+#include "sun3_fpga_csr_zz02_mdio.h"
+#include "mii.h"
+
+#define CSR0_EXPECTED (BMCR_ANENABLE | BMCR_FULLDPLX | BMCR_SPEED1000)
+#define CSR0_WANTED   (BMCR_ANENABLE | BMCR_FULLDPLX | BMCR_SPEED100)
+#define CSR0_RESET    (CSR0_WANTED | BMCR_RESET)
+
+static uint32_t read_phycsr(uint32_t adr);
+static uint32_t write_phycsr(uint32_t adr, uint32_t val);
+void reset_phy(void);
+
+#endif FPGA
 
 /* 
  * Parameters controlling TIMEBOMB action: times out if chip hangs.
@@ -43,6 +78,9 @@
 
 #include "../h/protos.h"
 
+//char checker(int);
+//char checkSize[sizeof(struct le_init_block)]={checker(&checkSize)};
+
 // in sys/inet.c
 void myetheraddr ( struct ether_addr * );
 
@@ -56,17 +94,19 @@ void myetheraddr ( struct ether_addr * );
 
 struct lance_softc {
 /*      char            es_scrat[PROTOSCRATCH]; /* work space for nd  */
-        struct le_device        *es_lance;      /* Device register address */
-        struct ether_addr       es_enaddr;      /* Our Ethernet address */
-        struct le_init_block    es_ib;          /* Initialization block */
-        u_char                  fill[6];
-        struct le_md            es_rmd[2];      /* Receive Descriptor Ring */
-        struct le_md            es_tmd;         /* Transmit Descriptor Ring */
-        vu_8                    es_rbuf[2][LANCERBUFSIZ]; /* Receive Buffers */
+        struct le_device        *es_lance;      /* Device register address */ /* 0+4 */
+        struct ether_addr       es_enaddr;      /* Our Ethernet address */ /* 4+6 */
+	u_short                 padding1; // align es_ib on 32-bits /* 10+2 */
+        struct le_init_block    es_ib;          /* Initialization block */ /* 12+24 */
+        u_char                  fill[6]; /* 36 + 6 */
+	u_short                 padding2[3]; // aling es_rmd sur 64 bits /* 42 + 6 */
+        struct le_md            es_rmd[2];      /* Receive Descriptor Ring */ /* 48+8 */
+        struct le_md            es_tmd;         /* Transmit Descriptor Ring */ /* 56+8 */
+        vu_8                    es_rbuf[2][LANCERBUFSIZ]; /* Receive Buffers */ /* 64+3200 */
 #ifndef PROM
         vu_8                    es_tbuf[LANCETBUFSIZ];  /* Transmit Buffer */
 #endif  PROM
-        int                     es_next_rmd;    /* Next descriptor in ring */
+        int                     es_next_rmd;    /* Next descriptor in ring */ /* 6464+4 */
 };
 
 // int lancexmit(), lancepoll(), lancereset();
@@ -82,7 +122,7 @@ static void install_buf_in_rmd ( vu_8 *, struct le_md *);
 
 static int lancexmit ( struct lance_softc *, char *, int );
 static int lancepoll ( struct lance_softc *, char * );
-static int lancereset ( struct lance_softc *, struct saioreq * );
+static int lancereset ( struct lance_softc * );//, struct saioreq * );
 
 struct saif leif = {
         (void *) lancexmit,
@@ -146,7 +186,7 @@ lanceopen ( struct saioreq *sip )
         register int result;
 
 #if defined(DEBUG1)
-        printf("le: lanceopen[\n");
+        printf("le: lanceopen (%x)\n", sip);
 #endif DEBUG1
 
         sip->si_sif = &leif;
@@ -190,7 +230,7 @@ lanceinit ( struct saioreq *sip )
                 return 1;
         }
 
-        return lancereset(es, sip);
+        return lancereset(es);//, sip);
 }
 
 /*
@@ -198,7 +238,7 @@ lanceinit ( struct saioreq *sip )
  * Returns 1 for error (after printing message), 0 for ok.
  */
 static int
-lancereset ( struct lance_softc *es, struct saioreq *sip )
+lancereset ( struct lance_softc *es) //, struct saioreq *sip )
 {
         register struct le_device *le = es->es_lance;
         register struct le_init_block *ib = &es->es_ib;
@@ -206,8 +246,13 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
         int i;
 
 #if defined(DEBUG1)
-        printf("le: lancereset(%x, %x)\n", es, sip);
+        printf("le: lancereset(%x => %x)\n", es, ib);
 #endif DEBUG1
+
+	
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+	reset_phy();
+#endif FPGA
 
         /* Reset the chip */
 	asm volatile("": : :"memory");
@@ -222,7 +267,7 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
         bzero((caddr_t)&es->es_ib, sizeof (struct le_init_block));
 
         /* Leave the mode word 0 for normal operating mode */
-
+	
         myetheraddr(&es->es_enaddr);
 
         /* Oh, for a consistent byte ordering among processors */
@@ -237,11 +282,19 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
 
         ib->ib_rdrp.drp_laddr = (long)&es->es_rmd[0];
         ib->ib_rdrp.drp_haddr = (long)&es->es_rmd[0] >> 16;
-        ib->ib_rdrp.drp_len  = 1;   /* 2 to the 1 power = 2 */
+        ib->ib_rdrp.drp_len  = 1 << 5;   /* 2 to the 1 power = 2 */
+
+#ifdef FPGA
+	printf("ib->ib_rdrp is %x (%x, %x, %x)\n", *(long*)&ib->ib_rdrp, ib->ib_rdrp.drp_laddr, ib->ib_rdrp.drp_haddr, ib->ib_rdrp.drp_len);
+#endif FPGA
         
         ib->ib_tdrp.drp_laddr = (long)&es->es_tmd;
         ib->ib_tdrp.drp_haddr = (long)&es->es_tmd >> 16;
-        ib->ib_tdrp.drp_len  = 0;   /* 2 to the 0 power = 1 */
+        ib->ib_tdrp.drp_len  = 0 << 5;   /* 2 to the 0 power = 1 */
+
+#ifdef FPGA
+	printf("ib->ib_tdrp is %x (%x, %x, %x)\n", *(long*)&ib->ib_tdrp, ib->ib_tdrp.drp_laddr, ib->ib_tdrp.drp_haddr, ib->ib_tdrp.drp_len);
+#endif FPGA
 
         /* Clear all the descriptors */
         bzero((caddr_t)es->es_rmd, 2 * sizeof (struct le_md));
@@ -251,7 +304,7 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
 	asm volatile("": : :"memory");
         le->le_rap = LE_CSR1;   /* select the low address register */
 	asm volatile("": : :"memory");
-        le->le_rdp = (long)ib & 0xffff;
+        le->le_rdp = (long)ib & 0xffff; // this assumes low-order bit is 0? (test code uses 0xfffe)
 
 	asm volatile("": : :"memory");
         le->le_rap = LE_CSR2;   /* select the high address register */
@@ -272,9 +325,30 @@ lancereset ( struct lance_softc *es, struct saioreq *sip )
         while( ! (le->le_csr & LE_IDON) ) {
                 if (timeout-- <= 0) {
                     printf("le: cannot initialize\n");
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+		    printf("    last dma addr is %x\n", zz02_mdio_cst_debug1_read(0));
+		    printf("    last dma value is %x\n", zz02_mdio_cst_debug2_read(0));
+		    printf("    word 0 of ivec %x\n", zz02_mdio_csr_iv_0_read(0));
+		    printf("    word 1 of ivec %x\n", zz02_mdio_csr_iv_1_read(0));
+		    printf("    word 2 of ivec %x\n", zz02_mdio_csr_iv_2_read(0));
+		    printf("    word 3 of ivec %x\n", zz02_mdio_csr_iv_3_read(0));
+		    printf("    word 4 of ivec %x\n", zz02_mdio_csr_iv_4_read(0));
+		    printf("    word 5 of ivec %x\n", zz02_mdio_csr_iv_5_read(0));
+#endif
                     return (1);
                 }
         }
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+	printf("le: initialized @ %x\n", ib);
+	printf("    last dma addr is %x\n", zz02_mdio_cst_debug1_read(0));
+	printf("    last dma value is %x\n", zz02_mdio_cst_debug2_read(0));
+	printf("    word 0 of ivec %x\n", zz02_mdio_csr_iv_0_read(0));
+	printf("    word 1 of ivec %x\n", zz02_mdio_csr_iv_1_read(0));
+	printf("    word 2 of ivec %x\n", zz02_mdio_csr_iv_2_read(0));
+	printf("    word 3 of ivec %x\n", zz02_mdio_csr_iv_3_read(0));
+	printf("    word 4 of ivec %x\n", zz02_mdio_csr_iv_4_read(0));
+	printf("    word 5 of ivec %x\n", zz02_mdio_csr_iv_5_read(0));
+#endif
 	asm volatile("": : :"memory");
         le->le_csr = LE_IDON;   /* Clear the indication */
 	asm volatile("": : :"memory");
@@ -303,6 +377,12 @@ install_buf_in_rmd ( vu_8 *buffer, struct le_md *rmd )
         rmd->lmd_bcnt = -LANCERBUFSIZ;
         rmd->lmd_mcnt = 0;
         rmd->lmd_flags = LMD_OWN;
+	
+#if defined(DEBUG1)
+        printf("le: install_buf_in_rmd (%x into %x - %d)\n", buffer, rmd, sizeof(struct le_md));
+        printf("    %x %x %x %x %x\n", rmd->lmd_ladr, rmd->lmd_hadr, rmd->lmd_bcnt, rmd->lmd_mcnt, rmd->lmd_flags);
+        printf("    [%x %x]\n", ((long*)rmd)[0], ((long*)rmd)[1]);
+#endif DEBUG1
 }
 
 /*
@@ -316,7 +396,15 @@ lancexmit ( struct lance_softc *es, char *buf, int count )
         struct le_md *tmd = &es->es_tmd; /* Transmit Msg. Descriptor */
         caddr_t tbuf;
         int timeout = TIMEBOMB;
-		u_32 addr;	// tjt
+	u_32 addr;	// tjt
+
+#ifdef FPGA
+	printf("lancexmit: %x, %x, %d\n", es, buf, count);
+	printf("   %x %x %x %x\n", ((long*)buf)[0], ((long*)buf)[1], ((long*)buf)[2], ((long*)buf)[3]);
+	printf("   %x %x %x %x\n", ((long*)buf)[4], ((long*)buf)[5], ((long*)buf)[6], ((long*)buf)[7]);
+	printf("   %x %x %x %x\n", ((long*)buf)[8], ((long*)buf)[9], ((long*)buf)[10], ((long*)buf)[11]);
+	printf("   %x %x %x %x\n", ((long*)buf)[12], ((long*)buf)[13], ((long*)buf)[14], ((long*)buf)[15]);
+#endif
 
 #if defined(DEBUG2)
         printf( "xmit np_blkno %x\n",
@@ -393,11 +481,34 @@ lancexmit ( struct lance_softc *es, char *buf, int count )
         ||   (tmd->lmd_flags3 & TMD_BUFF)
         ||   (timeout <= 0) ) {
 #if defined(DEBUG)
-                printf("le: xmit failed - tmd1 flags %x tmd3 %x csr0 %x\n",
-                        tmd->lmd_flags, tmd->lmd_flags3, le->le_csr);
+		u_short csr0 = le->le_csr;
+		u_short csr3;
+		asm volatile("": : :"memory");
+		le->le_rap = LE_CSR3;
+		asm volatile("": : :"memory");
+		csr3 = le->le_csr;
+		asm volatile("": : :"memory");
+		le->le_rap = LE_CSR0;
+		
+                printf("le: xmit failed - tmd1 flags %x tmd3 %x csr0 %x csr3 %x timeout %x\n",
+		       tmd->lmd_flags, tmd->lmd_flags3, csr0, csr3, timeout);
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+		printf("    last dma addr is %x\n", zz02_mdio_cst_debug1_read(0));
+		printf("    last dma value is %x\n", zz02_mdio_cst_debug2_read(0));
+		printf("    word 0 of ivec %x\n", zz02_mdio_csr_iv_0_read(0));
+		printf("    word 1 of ivec %x\n", zz02_mdio_csr_iv_1_read(0));
+		printf("    word 2 of ivec %x\n", zz02_mdio_csr_iv_2_read(0));
+		printf("    word 3 of ivec %x\n", zz02_mdio_csr_iv_3_read(0));
+		printf("    word 4 of ivec %x\n", zz02_mdio_csr_iv_4_read(0));
+		printf("    word 5 of ivec %x\n", zz02_mdio_csr_iv_5_read(0));
+#endif
 #endif DEBUG
                 return (1);
         }
+	
+#if defined(DEBUG1)
+	printf("le: xmit suceeded (?)\n");
+#endif DEBUG1
 
         return (0);
 }
@@ -459,6 +570,28 @@ lancepoll ( struct lance_softc *es, char *buf )
                 printf("le: LANCE Rev C Extra Byte(s) bug; Packet punted\n");
                 length = 0;
                 /* Don't return directly; restore the buffer first */
+#if defined(DEBUG1)
+                printf("    %x %x <= mine\n", *(long  *)(&es->es_enaddr.ether_addr_octet[0]), *(short  *)(&es->es_enaddr.ether_addr_octet[4]));
+                printf("    %x %x <= recvd\n", *(long  *)(&header->ether_dhost.ether_addr_octet[0]), *(short  *)(&header->ether_dhost.ether_addr_octet[4]));
+		printf("    rmd => %x, length => %d, header => %x\n", rmd, length, header);
+		printf("    rmd content: %x %x\n", ((long*)rmd)[0], ((long*)rmd)[1]);
+		printf("    header content: %x %x %x %x\n", ((long*)header)[0], ((long*)header)[1], ((long*)header)[2], ((long*)header)[3]);
+		printf("                    %x %x %x %x\n", ((long*)header)[4], ((long*)header)[5], ((long*)header)[6], ((long*)header)[7]);
+		printf("                    %x %x %x %x\n", ((long*)header)[8], ((long*)header)[9], ((long*)header)[10], ((long*)header)[11]);
+		printf("                    %x %x %x %x\n", ((long*)header)[12], ((long*)header)[13], ((long*)header)[14], ((long*)header)[15]);
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+		printf("    last dma addr is %x\n", zz02_mdio_cst_debug1_read(0));
+		printf("    last dma value is %x\n", zz02_mdio_cst_debug2_read(0));
+		printf("    word 0 of ivec %x\n", zz02_mdio_csr_iv_0_read(0));
+		printf("    word 1 of ivec %x\n", zz02_mdio_csr_iv_1_read(0));
+		printf("    word 2 of ivec %x\n", zz02_mdio_csr_iv_2_read(0));
+		printf("    word 3 of ivec %x\n", zz02_mdio_csr_iv_3_read(0));
+		printf("    word 4 of ivec %x\n", zz02_mdio_csr_iv_4_read(0));
+		printf("    word 5 of ivec %x\n", zz02_mdio_csr_iv_5_read(0));
+		printf("    word 6         %x\n", zz02_mdio_csr_iv_6_read(0));
+		printf("    word 7         %x\n", zz02_mdio_csr_iv_7_read(0));
+#endif
+#endif DEBUG1
         }
 #endif LANCEBUG
 
@@ -504,4 +637,69 @@ lanceclose ( struct saioreq *sip )
         le->le_csr = LE_STOP;
 }
 
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+
+static uint32_t read_phycsr(uint32_t adr) {
+	const uint32_t a32 = 0;
+	int timeout = 1000;
+	zz02_mdio_reg_addr_write(a32, adr); // target CSR
+	zz02_mdio_mdio_command_write(a32, 0x1); // read reg
+	while (((zz02_mdio_mdio_status_read(a32) & 0x1) != 0x1) &&
+	       (--timeout > 0))
+		// wait until the FSM has finished reading
+		;
+	if (!timeout) {
+		printf("ERROR: MDIO read access failed\n");
+		return -1;
+	}
+
+	return zz02_mdio_mdio_read_read(a32);
+}
+static uint32_t write_phycsr(uint32_t adr, uint32_t val) {
+	const uint32_t a32 = 0;
+	int timeout = 1000;
+	zz02_mdio_reg_addr_write(a32, adr); // target CSR
+	zz02_mdio_mdio_write_write(a32, val); // push value
+	zz02_mdio_mdio_command_write(a32, 0x2); // write reg
+	while (((zz02_mdio_mdio_status_read(a32) & 0x1) != 0x1) &&
+	       (--timeout > 0))
+		// wait until the FSM has finished reading
+		;
+	if (!timeout) {
+		printf("ERROR: MDIO write access failed\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+/* everyone else does it ... */
+#define millitime() (*romp->v_nmiclock)
+
+void reset_phy(void) {
+	const uint32_t a32 = 0;
+	uint16_t val;
+	int time;
+#ifdef DEBUG1
+	printf("Reseting ETH PHY\n");
+#endif
+	zz02_mdio_phy_addr_write(a32, 0); // phy, once and for all, just in case
+	val = read_phycsr(0); // read CSR0
+	if ((val != CSR0_EXPECTED) && (val != CSR0_WANTED)){
+		printf("WARNING: CSR0 is 0x%x\n", val);
+	}
+	write_phycsr(0, CSR0_RESET); // reset the chip
+	time = millitime();
+	do {
+		DELAY(1000);
+		val = read_phycsr(0);
+	} while (((val & BMCR_RESET) != 0) && (millitime() < (time + 10000000)));
+	if (val & BMCR_RESET) {
+		printf("ERROR: MII PHY RESET taking too long\n");
+	}
+	printf("INFO: PHY control  is 0x%x\n", read_phycsr(0x00));
+	printf("      PHY status   is 0x%x\n", read_phycsr(0x01));
+	printf("      PHY specific is 0x%x\n", read_phycsr(0x11));
+}
+#endif
 /* THE END */

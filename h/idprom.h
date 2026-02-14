@@ -38,6 +38,7 @@ struct idprom {
 #define	IDM_SUN3_M25	0x12	/* M25 CPU */
 #define	IDM_SUN3_SIRIUS 0x13	/* Sirius CPU */
 #define IDM_SUN3_PRISM  0x14    /* Prism CPU */
+#define IDM_SUN3_FPGA   0x1F    /* Sun3/F CPU */
 
 void getidprom ( struct idprom *, int );
 int idprom ( unsigned char, struct idprom * );

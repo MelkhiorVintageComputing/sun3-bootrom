@@ -73,6 +73,9 @@ etheropen ( struct saioreq *sip )
         register struct tftpglob *tf = TFTPBASE;
 
         bzero((caddr_t)tf, sizeof (*tf));
+#ifdef FPGA
+	printf("etheropen: calling inet_init\n");
+#endif
         inet_init(sip, &tf->tf_inet, tf->tf_tmpbuf); /* Initialize inet */
         return (0);
 }

@@ -594,7 +594,7 @@ loopback ( struct ereg *eregp, struct etherblock *blockp, int blocksize )
 void amdle_test(void) {
 	setsmreg(0x0f080000, 0xc0);     /* 16 pages */
 	map(0xf080000, 16*PAGESIZE, ETHERMEM, PM_MEM); /*map 16 pages*/
-	u_long vadrs = (u_long)(ETHERMEM + 0xF000000);
+	u_long vadrs = (u_long)(ETHERMEM + 0xF000000); // 0xF080000
 	amd_ether_loop(1 ,vadrs);
 }
 #endif
@@ -760,6 +760,7 @@ amd_ether_loop(u_short mode, u_long vadrs)
         else                                     /* default internal loopback */
                 amd_init_block->mode =  AMD_E_INTL | AMD_E_LOOPBACK;
 
+#if 0
         amd_init_block->padr_lo = 0x200;
         amd_init_block->padr_mid = 0x0;
         amd_init_block->padr_hi = 0x0;
@@ -767,6 +768,15 @@ amd_ether_loop(u_short mode, u_long vadrs)
         amd_init_block->ladr_mid_lo = 0x0;
         amd_init_block->ladr_mid_hi = 0x0;
         amd_init_block->ladr_hi = 0x0;
+#else
+        amd_init_block->padr_lo = 0x200;
+        amd_init_block->padr_mid = 0x1011;
+        amd_init_block->padr_hi = 0x2021;
+        amd_init_block->ladr_lo = 0x3031;
+        amd_init_block->ladr_mid_lo = 0x4041;
+        amd_init_block->ladr_mid_hi = 0x5051;
+        amd_init_block->ladr_hi = 0x6061;
+#endif
 
         amd_init_block->rdra_lo = (u_short)((u_long)amd_rx_block & 0xFFFF);
         amd_init_block->rdra_hi = (u_short)(((u_long)amd_rx_block >> 16) & 0xFF);
@@ -877,7 +887,7 @@ amd_ether_loop(u_short mode, u_long vadrs)
         }
 #ifdef FPGA
 	else {
-		printf("AMDLE: Initialization suceeded (%d out of %d left)\n", timeleft, MAXTIME_AMD);
+		printf("AMDLE: Initialization suceeded (%d out of %d left) @ %x\n", timeleft, MAXTIME_AMD, amd_init_block);
 	}
 #endif
 

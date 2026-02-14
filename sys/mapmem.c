@@ -66,7 +66,7 @@ struct pginit mapinit[] = {
 
         {(char *)AMD_ETHER_BASE, 0,
                 {1, PMP_SUP, VPM_IO, 0, 0, VIOPG_AMD_ETHER}},
-
+	
         {(char *)SCSI_BASE, 0,
                 {1, PMP_SUP, VPM_IO, 0, 0, VIOPG_SCSI}},
 
@@ -75,9 +75,17 @@ struct pginit mapinit[] = {
 
         {(char *)ECC_CTRL_BASE, 0,
                 {1, PMP_SUP, VPM_IO, 0, 0, VIOPG_ECC_CTRL}},
-
+	
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+        {(char *)CSR_BASE, 0,
+                {1, PMP_SUP, VPM_VME32 | VPM_MEMORY_NOCACHE, 0, 0, VME32PG_CSR}},
+	
+        {((char *)CSR_BASE)+2*BYTESPERPG, 0,         /* Unused */
+                {0, PMP_RO_SUP, VPM_MEMORY, 0, 0, 0}},
+#else
         {((char *)ECC_CTRL_BASE)+BYTESPERPG, 0,         /* Unused */
                 {0, PMP_RO_SUP, VPM_MEMORY, 0, 0, 0}},
+#endif
 
         {VIDEOMEM_BASE, 1,              /* Video memory (if we have any) */
                 {1, PMP_SUP, VPM_MEMORY_NOCACHE, 0, 0, MEMPG_VIDEO}},

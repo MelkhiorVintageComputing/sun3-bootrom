@@ -30,11 +30,11 @@ static inline int num_subregs(int csr_bytes)
 /* Read a CSR of size 'csr_bytes' located at address 'a'. */
 static inline uint64_t _csr_rd(uint32_t a32, unsigned long a, int csr_bytes)
 {
-  uint64_t r = __builtin_bswap32(*((uint32_t*)(a32 + a)));
+  uint64_t r = __optional_bswap32(*((uint32_t*)(a32 + a)));
 	for (int i = 1; i < num_subregs(csr_bytes); i++) {
 		r <<= CONFIG_CSR_DATA_WIDTH;
 		a += CSR_OFFSET_BYTES;
-		r |= __builtin_bswap32(*((uint32_t*)(a32 + a)));
+		r |= __optional_bswap32(*((uint32_t*)(a32 + a)));
 	}
 	return r;
 }
@@ -44,7 +44,7 @@ static inline void _csr_wr(uint32_t a32, unsigned long a, uint64_t v, int csr_by
 {
 	int ns = num_subregs(csr_bytes);
 	for (int i = 0; i < ns; i++) {
-	  *((uint32_t*)(a32 + a)) = __builtin_bswap32(v >> (CONFIG_CSR_DATA_WIDTH * (ns - 1 - i)));
+	  *((uint32_t*)(a32 + a)) = __optional_bswap32(v >> (CONFIG_CSR_DATA_WIDTH * (ns - 1 - i)));
 		a += CSR_OFFSET_BYTES;
 	}
 }
@@ -118,7 +118,7 @@ static inline void csr_wr_uint64(uint32_t a32, uint64_t v, unsigned long a)
       nsubs = num_subregs(sizeof(buf[0]) * cnt);			\
       n_sub_elem = CSR_DW_BYTES / sizeof(buf[0]);			\
       for (i = 0; i < nsubs; i++) {					\
-	r = __builtin_bswap32(*(uint32_t*)(a32 + a));			\
+	r = __optional_bswap32(*(uint32_t*)(a32 + a));			\
       for (j = n_sub_elem - 1; j >= 0; j--) {				\
 	if (i * n_sub_elem + j < cnt)					\
 	  buf[i * n_sub_elem + j] = r;					\
@@ -155,7 +155,7 @@ static inline void csr_wr_uint64(uint32_t a32, uint64_t v, unsigned long a)
 				v <<= sizeof(buf[0]) * 8; \
 				v |= buf[i * n_sub_elem + j]; \
 			} \
-			*((uint32_t*)(a32 + a)) = __builtin_bswap32(v);	\
+			*((uint32_t*)(a32 + a)) = __optional_bswap32(v);	\
 			a += CSR_OFFSET_BYTES;	\
 		} \
 	} \

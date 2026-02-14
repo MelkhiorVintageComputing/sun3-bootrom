@@ -111,6 +111,7 @@ struct le_drp {                 /* Descriptor Ring Pointer */
         vu_8  drp_haddr;      /* High 16 bits of ring address */
 };
 
+
 /*
  * Initialization Block.  This structure is constructed in memory,
  * and it's address is written into the chip during initialization.

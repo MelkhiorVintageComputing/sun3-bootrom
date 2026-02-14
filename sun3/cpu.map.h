@@ -140,7 +140,10 @@ union pgmap_un {
 /*                      0xD0    /* Reserved */
 #define VIOPG_DES       0xE0    /* AMD 8068 data ciphering processor */
 #define VIOPG_ECC_CTRL  0xF0    /* ECC Control Register access */
-
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+#define VME32PG_CSR     (0xF0A00000 >> BYTES_PG_SHIFT)    /* Wishbone-accessed CSR */
+#define VME32PG_LITE_BUFFER (0xF0C00000 >> BYTES_PG_SHIFT)    /* Wishbone-accessed Ethernet buffer*/
+#endif
 
 /*
  * Other special page numbers.

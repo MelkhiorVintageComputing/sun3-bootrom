@@ -13,6 +13,7 @@
 
 IDENT='-DID="Rev 2.1F"' -DSUN3 -DCARRERA -DFPGA -DFPGA_WISHBONE -DFPGA_FB # -DWANT_KB -DWANT_FB #-DFPGA_FAST # -DWANT_SCSI # -DFPGA_TEST_ETHER
 #IDENT='-DID="Rev 2.1F"' -DSUN3 -DCARRERA -DFPGA -DFPGA_FAST -DFPGA_TEST_ETHER
+#IDENT='-DID="Rev 2.1F"' -DSUN3 -DCARRERA -DFPGA -DFPGA_FAST -DFPGA_TEST_ETHER -DFPGA_WISHBONE
 
 # Now this is in bootrom.lds
 #RELOC=0FEF0000
@@ -22,7 +23,7 @@ IDENT='-DID="Rev 2.1F"' -DSUN3 -DCARRERA -DFPGA -DFPGA_WISHBONE -DFPGA_FB # -DWA
 # -O2 works but is quite close to 64 KiB
 # -O1 works and has some margin (~54 KiB)
 
-COPTS= -Os -Wno-endif-labels -Wno-multichar -Werror #-Wno-implicit-function-declaration
+COPTS= -Os -Wno-endif-labels -Wno-multichar -Wno-shift-count-overflow -Werror #-Wno-implicit-function-declaration
 # CFLAGS = -I../h -I. ${COPTS} ${IDENT} -DMC68000
 #CFLAGS = -I../h ${COPTS} ${IDENT} -DMC68000
 CFLAGS = -I../h ${COPTS} ${IDENT} -DANSI
@@ -47,9 +48,9 @@ OBJS = romvec.o trap.o mapmem.o reset.o cpu.map.o \
 	keypress.o getkey.o ktab.s2.o \
 	boot.o monalloc.o common.o blts.o \
 	expand.o finit.o fwritestr.o rop.o gallmash.o mem_grab.o \
-	if_le.o \
 	sc.o sd.o xxboot.o xxprobe.o \
 	scutils.o space.o st.o \
+	if_lite.o \
 	inet.o tftp.o \
 	diagmenus.o machdep.o cmp.o patt.o db.o si.o \
 	memcpy.o \
@@ -177,6 +178,9 @@ if_ie.o: ../dev/if_ie.c
 if_le.o: ../dev/if_le.c
 	$(CC) -c $<
 
+if_lite.o: ../dev/if_lite.c # CSR_BASE is the onde defined in cpu.addrs.h
+	$(CC) -DCSR_BASE=0x0FE18000 -c $<
+
 mem_grab.o: ../sys/mem_grab.c
 	$(CC) -c $<
 
@@ -230,7 +234,7 @@ si.o: ../dev/si.c
 rop.o: ../sys/rop.s
 	$(AS) -c $<
 
-sdram.o: ../dev/sdram.c
+sdram.o: ../dev/sdram.c # CSR_BASE is the temporary mapping during init
 	$(CC) -DCSR_BASE=0x0FFF8000 -c $<
 
 sdram_preinit.o: ../dev/sdram_preinit.s

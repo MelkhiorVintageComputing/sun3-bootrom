@@ -42,6 +42,12 @@
 #define SCSI_BASE       ((struct scsichip *)            0x0FE12000)
 #define DES_BASE        ((struct deschip *)             0x0FE14000)
 #define ECC_CTRL_BASE   ((struct ecc_ctrl *)            0x0FE16000)
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+#ifndef CSR_BASE
+#define CSR_BASE        ((void*)                        0x0FE18000) // new, 2 pages of CSRs (16 KiB)
+#endif
+// #define LITE_ETHER_BUFFER ((void*)                      0X0FE1C000) // new, 1 page of buffer SRAM (8 KiB)
+#endif
 
 /* Video memory (at least one plane of it...) */
 #define VIDEOMEM_BASE   ((char *)                       0x0FE20000)

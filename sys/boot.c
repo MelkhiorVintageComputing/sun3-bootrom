@@ -34,6 +34,10 @@ extern struct boottab stdriver;         /* SCSI tape driver */
 extern struct boottab ledriver;         /* AMD Ethernet driver */
 extern struct boottab iedriver;         /* Intel Ethernet driver */
 
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+extern struct boottab litedriver;         /* LiteEth Ethernet driver */
+#endif
+
 #ifdef WANT_SCSI
 struct boottab *(boottab[]) = {
         &sddriver,
@@ -51,12 +55,16 @@ struct boottab *(boottab[]) = {
 #else // ORIGINAL
 struct boottab *(boottab[]) = {
         &sddriver,
-        &stdriver,
-#if defined(M25) || defined(FPGA)
+        &stdriver, 
+#if defined(FPGA) && defined(FPGA_WISHBONE)
+	&litedriver,
+#else
+#if defined(M25) // || defined(FPGA)
         &ledriver,
 #else M25
         &iedriver,
-#endif 
+#endif
+#endif
         0,
 };
 #endif

@@ -36,7 +36,7 @@ struct saioreq {
         struct  saif *si_sif;           /* interface pointer */
         char    *si_devaddr;            /* Points to mapped in device */
         char    *si_dmaaddr;            /* Points to allocated DMA space */
-};
+} __attribute__ ((aligned (2)));
 
 
 #define F_READ  01

@@ -7,6 +7,13 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long
 
+#if defined(WB_LITTLE_ENDIAN)
+#define __optional_bswap32(x) __builtin_bswap32(x)
+#else
+#define __optional_bswap32(x) (x)
+#endif
+
+
 #include "sun3_fpga_csr_ddrphy.h"
 #include "sun3_fpga_csr_sdram.h"
 

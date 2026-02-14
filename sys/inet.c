@@ -166,7 +166,7 @@ ip_input ( struct saioreq *sip, caddr_t buf, struct sainet *sain )
 static void
 arp ( struct saioreq *sip, struct sainet *sain, char *tmpbuf)
 {
-        struct arp_packet out;
+        struct arp_packet out __attribute__ ((aligned (8)));
 
         if (in_lnaof(sain->sain_hisaddr) == INADDR_ANY ||
             (in_lnaof(sain->sain_hisaddr) & INADDR1_ANY) == INADDR1_ANY) {
@@ -189,7 +189,7 @@ arp ( struct saioreq *sip, struct sainet *sain, char *tmpbuf)
 static void
 revarp ( struct saioreq *sip, struct sainet *sain, char *tmpbuf)
 {
-        struct arp_packet out;
+        struct arp_packet out __attribute__ ((aligned (8)));
 
         out.arp_eh.ether_type = ETHERPUP_REVARPTYPE;
         out.arp_ea.arp_op = REVARP_REQUEST;
@@ -210,6 +210,10 @@ comarp ( struct saioreq *sip, struct sainet *sain, struct arp_packet *out, char 
         register struct arp_packet *in = (struct arp_packet *)tmpbuf;
         register int e, count, time, feedback,len, delay = 2;
         char    *ind = "-\\|/";
+
+#ifdef FPGA
+	printf("comarp: starting (sip=%x, sain=%x, out=%x, tmpbuf=%x)\n", sip, sain, out, tmpbuf);
+#endif
 
         out->arp_eh.ether_dhost = etherbroadcastaddr;
         out->arp_eh.ether_shost = sain->sain_myether;

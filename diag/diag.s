@@ -945,7 +945,7 @@ setup_traps:
         movl    #SCRATCH_SRAM_BASE,d0   | used to configure the DDR3
         movsl   a0,a5@(0,d0:L)
 #endif FPGA_WISHBONE
-#if 0 && defined(FPGA_TEST_ETHER)
+#if defined(FPGA_TEST_ETHER)
 test_ether:
 	// setup MMU
         lea     AMDLE_PAGE,a0
